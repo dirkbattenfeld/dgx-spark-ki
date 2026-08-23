@@ -1,0 +1,45 @@
+{
+  "name": "DGX Spark Stack - Control Plane: gui_dev",
+  "dockerComposeFile": [
+    "../../control-plane/gui_dev/docker-compose.yaml"
+  ],
+  "service": "gui_dev",
+  "localEnvFile": "../../../.env",
+  "containerEnvFile": "../../../.env",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "root",
+  "forwardPorts": [
+    8080
+  ],
+  "containerEnv": {
+    "PYTHONPATH": "/app:/app/src:/spark/libs:/spark/configs:/spark/applications:${PYTHONPATH}"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-python.black-formatter",
+        "ms-python.debugpy",
+        "nypwerner.autodocstring",
+        "redhat.vscode-yaml",
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        "proitspace.zoo-code",
+        "continue.continue"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.extraPaths": [
+          "/workspace",
+          "/app",
+          "/spark/libs"
+        ],
+        "python.languageServer": "Pylance",
+        "workbench.startupEditor": "none"
+      }
+    }
+  }
+}

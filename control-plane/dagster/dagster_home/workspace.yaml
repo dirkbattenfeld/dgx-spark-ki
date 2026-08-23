@@ -1,0 +1,10 @@
+load_from:
+#  - python_file:
+#      relative_path: "/app/src/ki_dagster/definitions_dev.py"
+#      location_name: "KI_dev"
+  - python_file:
+      relative_path: "/app/src/ki_dagster/definitions_pipeline.py"
+      location_name: "KI_pipeline"
+
+
+

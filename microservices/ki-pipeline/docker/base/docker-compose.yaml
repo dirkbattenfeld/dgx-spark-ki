@@ -1,0 +1,55 @@
+services:
+  ai-db:
+    image: postgres:16-alpine
+    container_name: ai-db
+    environment:
+      POSTGRES_USER: ai_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: postgres # Standard-DB für den Admin-Login
+    ports:
+      - "5434:5432"
+    volumes:
+      - ai-data-volume:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d # Automatisches Anlegen der DBs
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_admin -d dagster_storage"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-net
+
+  dagster:
+    build: .
+    image: ai-pipeline-base-gx10:v1.1
+    container_name: dagster
+    environment:
+      HF_TOKEN: ${HF_TOKEN}
+      DAGSTER_HOME: /app/dagster_home
+      # Generische Namen in den Verbindungsstrings
+      DAGSTER_DB_URL: postgresql://ai_admin:${DB_PASSWORD}@ai-db:5432/dagster_storage
+      # OPTUNA_DB_URL: postgresql+psycopg2://ai_admin:${DB_PASSWORD}@ai-db:5432/optuna_storage
+      # Endpunkte für deine Microservices (Beispiel)
+    volumes:
+      - ${HF_HOME}:/root/.cache/huggingface
+      - ./src:/app/src
+      - ./code:/app/code
+      - ./projects:/app/projects
+      - ./dagster_home:/app/dagster_home
+    ports:
+      - "3000:3000"
+    depends_on:
+      ai-db:
+        condition: service_healthy
+    command:
+      dagster dev -h 0.0.0.0 -p 3000 -w /app/dagster_home/workspace.yaml
+    networks:
+      - ai-net
+
+volumes:
+  ai-data-volume:
+
+networks:
+  ai-net:
+    driver: bridge
+

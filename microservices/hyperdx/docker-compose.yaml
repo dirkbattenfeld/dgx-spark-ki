@@ -1,0 +1,65 @@
+services:
+  hyperdx:
+    image: docker.hyperdx.io/hyperdx/hyperdx:2-beta
+    container_name: hyperdx
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/hyperdx
+      - EXPRESS_SESSION_SECRET=change_me_to_a_random_secure_string
+      - FRONTEND_URL=http://localhost:8080
+    depends_on:
+      - mongo
+      - ch-server
+    networks:
+      - hdx-net
+
+  mongo:
+    image: mongo:6.0
+    container_name: hyperdx-mongo
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - hdx-net
+
+  ch-server:
+    image: clickhouse/clickhouse-server:24.3-alpine
+    container_name: hyperdx-clickhouse
+    environment:
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123" # HTTP API
+#      - "9000:9000" # Native Port für Clusterkommunikation
+    volumes:
+      - ch_data:/var/lib/clickhouse
+      - ./infra/clickhouse/config.xml:/etc/clickhouse-server/config.d/listen.xml
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - hdx-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: hdx-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./infra/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    depends_on:
+      ch-server:
+        condition: service_healthy
+    networks:
+      - hdx-net
+
+volumes:
+  mongo_data:
+  ch_data:
+
+networks:
+  hdx-net:
+    driver: bridge

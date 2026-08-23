@@ -1,0 +1,15 @@
+type: ki_dagster.components.ai_pipeline.AIPipelineComponent
+
+attributes:
+  nodes:
+    - name: pipeline_execution
+      node_id: sentiment_modernbert_finetuned
+      type: pipelineexecutor
+      base_path: "/app/projects/sentiment"
+      config_path: "configs/sentiment_modernbert_finetuned.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: none
+
+
+

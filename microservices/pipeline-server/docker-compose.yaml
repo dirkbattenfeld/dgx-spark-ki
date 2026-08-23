@@ -1,0 +1,38 @@
+services:
+  pipeline-server:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+    image: pipeline-server:v1.0
+    container_name: pipeline-server
+    restart: always
+    env_file:
+      - ../../.env
+    ports:
+      - "8010:8010"
+    volumes:
+      # 1. Die App-Laufzeitumgebung des spezifischen Server-Entrypoints
+      - .:/app/microservices/pipeline-server
+
+      # 2. Die geteilte generische FastAPI-Runtime
+      - ../shared_runtime:/app/microservices/shared_runtime
+
+      # 3. Code der Applikationen, Bibliotheken und Projekte aus dem Monorepo
+      - ../../applications:/app/applications
+      - ../../libs:/app/libs
+      - ../../configs:/app/configs
+      - ../../projects:/app/projects
+    environment:
+      PYTHONUNBUFFERED: 1
+      # Der PYTHONPATH spiegelt die Struktur exakt wider
+      PYTHONPATH: /app:/app/libs:/app/configs:/app/applications:/app/microservices
+
+      # --- Deklarative Pipeline-Konfiguration (Das Gehirn des Bootstrappers) ---
+      SERVICE_TITLE: "StreamPipe RAG Request Gateway"
+      PIPELINE_FACTORY_MODULE: "applications.rag.pipelines.rag_request.api_bridge"
+      PIPELINE_TOPOLOGY_FN: "build_rag_topology"
+      PIPELINE_TRANSFORM_FN: "transform_pool_to_api_response"
+
+    # Startet uvicorn mit Live-Reload (--reload) auf dem Workspace für sofortige Codeänderungen
+    command: uvicorn microservices.pipeline-server.main:app --host 0.0.0.0 --port 8010 # --reload
+

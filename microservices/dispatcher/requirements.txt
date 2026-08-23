@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+httpx
+watchfiles
+pydantic-settings
+pyyaml
+
+
+
+

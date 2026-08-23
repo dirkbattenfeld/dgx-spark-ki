@@ -1,0 +1,30 @@
+
+--- [PERSISTOR OUTPUT] ---
+{
+  "run_id": "Path=/app/projects/ml/runs/003_logreg_opt_run_0001 with ID: 1",
+  "component_results": [
+    {
+      "component_id": "ml_runner",
+      "runcontext_summary.config.modeltype": "logistic_regression",
+      "runcontext_summary.config.config.penalty": "l2",
+      "runcontext_summary.config.config.C": 1.0,
+      "runcontext_summary.config.config.solver": "lbfgs",
+      "runcontext_summary.config.config.max_iter": 100,
+      "runcontext_summary.config.write_artifact": true,
+      "runcontext_summary.run_id": 1
+    },
+    {
+      "component_id": "sklearn_metrics",
+      "outputs_summary.results.accuracy": 0.7142857142857143,
+      "outputs_summary.results.precision": 0.6086956521739131,
+      "outputs_summary.results.recall": 0.5185185185185185,
+      "outputs_summary.results.f1": 0.56,
+      "outputs_summary.results.roc_auc_score": 0.6692592592592593,
+      "outputs_summary.results.log_loss": 10.2981866826049,
+      "outputs_summary.results.balanced_accuracy_score": 0.6692592592592592
+    }
+  ],
+  "created_at": "2026-04-26T17:55:20.767393"
+}
+--- [END OUTPUT] ---
+

@@ -1,0 +1,117 @@
+services:
+#  llama-gpu:
+#    image: rag-llama-llm-gpu:prod
+#    #container_name: llama-gpu
+#    runtime: nvidia
+#    environment:
+#      - NVIDIA_VISIBLE_DEVICES=all
+#    command: ["/app/llama.cpp/build/bin/llama-server", "-m", "/models/llm_modell.gguf", "-t", "4", "--host", "0.0.0.0", "--port", "5001"]
+#    expose:
+#      - "5001"
+#    volumes:
+#      - /home/dirk/models:/models
+#    restart: unless-stopped
+#    networks:
+#      ai-net:
+#        ipv4_address: 172.25.0.10
+
+#  llama-cpu:
+#    image: rag-llama-llm-cpu:prod
+#    #container_name: llama-cpu
+#    command: ["/app/llama.cpp/build/bin/llama-server", "-m", "/models/zetasepic-Qwen2.5-72B-Instruct-abliterated-v2-Q4_K_M-00001-of-00010.gguf", "-t", "24", "--host", "0.0.0.0", "--port", "5000"]
+#    expose:
+#      - "5000"
+#    volumes:
+#      - /home/dirk/models:/models
+#    restart: unless-stopped
+#    networks:
+#      ai-net:
+#        ipv4_address: 172.25.0.11
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: optuna_user
+      POSTGRES_PASSWORD: optuna_pw
+      POSTGRES_DB: optuna
+    ports:
+      - "5434:5432"
+    volumes:
+      - optuna-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U optuna_user -d optuna"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-net
+
+
+  optuna-dashboard:
+    image: ghcr.io/optuna/optuna-dashboard
+    container_name: optuna-dashboard
+    # Das 'command' überschreibt den Standardstart und übergibt die URL direkt
+    command: postgresql://optuna_user:optuna_pw@postgres:5432/optuna
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ai-net
+
+
+  dagster:
+    image: ai-pipeline-dagster:v9
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+    container_name: dagster
+    volumes:
+      - ./src:/app/src
+      - ./dagster_home:/app/dagster_home
+      - ./notebooks:/app/notebooks
+      - ../../projects:/app/projects
+      - ./.vscode:/app/.vscode
+      - /home/dirk/models:/models
+      - ./cache/huggingface:/app/.cache/huggingface
+      - ../../libs:/libs
+    environment:
+      DAGSTER_HOME: /app/dagster_home
+      PYTHONPATH: /app/src:/app:/libs
+      HF_HOME: /app/.cache/huggingface
+      HF_TOKEN: "${HF_TOKEN}"
+      PYTHONUNBUFFERED: 1
+      OPTUNA_DB_URL: postgresql+psycopg2://optuna_user:optuna_pw@postgres:5432/optuna
+      DAGSTER_DB_URL: postgresql://optuna_user:optuna_pw@postgres:5432/dagster_storage
+      RESULTS_DB_URL: postgresql+psycopg2://optuna_user:optuna_pw@postgres:5432/pipeline_results
+    user: "0:0"
+#   user: "${UID}:${GID}"
+    command:
+      dagster dev -h 0.0.0.0 -p 3000 -w /app/dagster_home/workspace.yaml
+    ports:
+      - "3000:3000"  # Dagster UI
+      - "8000:8000"  # FastAPI
+      - "5678:5678"  # Der Port für debugpy
+    depends_on:
+#      llama-gpu:
+#        condition: service_started
+#      llama-cpu:
+#        condition: service_started
+      postgres:
+        condition: service_healthy
+      optuna-dashboard:
+        condition: service_started
+    networks:
+      - ai-net
+
+volumes:
+  optuna-db-data:
+
+networks:
+  ai-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/24

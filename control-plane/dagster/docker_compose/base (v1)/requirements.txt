@@ -1,0 +1,49 @@
+# --------------------------
+# Dagster
+# stabil, selten geupdated
+# --------------------------
+dagster==1.12.14
+dagster-webserver==1.12.14
+dagster-postgres==0.28.14
+dagster-graphql==1.12.14
+dagster-pipes==1.12.14
+
+# --------------------------
+# ML (CPU, stabil)
+# scikit-learn als primärer Use Case im Base Image
+# --------------------------
+scikit-learn==1.3.2
+numpy
+pandas
+pyarrow>=15.0.0,<19.0.0
+
+# --------------------------
+# Datenbank
+# --------------------------
+psycopg2-binary==2.9.9
+
+# --------------------------
+# API & Infrastruktur
+# HTTP-Client für GX10 und andere externe Services
+# --------------------------
+pydantic==2.12.5
+pyyaml==6.0
+requests
+fastapi
+uvicorn
+openai
+
+# --------------------------
+# Dev & Notebook
+# --------------------------
+ipywidgets==8.0.6
+ipykernel
+jupytext
+nbformat
+rich==13.4.1
+tqdm==4.65.0
+
+# --------------------------
+# Sonstiges
+# --------------------------
+kaggle

@@ -1,0 +1,57 @@
+pipeline:
+  verbose: true
+  
+  loader:
+    name: hf_loader
+    config:
+      dataset_name: "ag_news"
+      split: "train"
+      
+  raw_mapper:
+    name: RawToTopic
+    config:
+      label_map:
+        0: "World"
+        1: "Sports"
+        2: "Business"
+        3: "Sci/Tech"
+  
+  preprocessors:
+    - name: stratified_sampler
+      config:
+        limit: 100
+        seed: 42
+    - name: simple_cleaner
+      config:
+        lowercase: true
+        strip: true
+        remove_urls: true
+        remove_html: true
+        collapse_whitespace: true
+
+  embedding:
+    name: sentence_transformer
+    config:
+      hf_model_name: "paraphrase-multilingual-MiniLM-L12-v2"
+     
+  head:
+    name: bertopic_head
+    config:
+      # UMAP
+      n_neighbors: 15           # Anzahl Nachbarn, die UMAP bei der Bildung der lokalen Struktur berücksichtigen soll (< Anzahl Documente).
+      n_components: 5           # Anzahl der Dimensionen, auf die reduziert werden soll (oft 2 oder 5 für Visualisierung/Clustering)
+      umap_metric: "cosine"     # Distanzmetrik für die Berechnung der Ähnlichkeit ('cosine' für Embeddings).
+      random_state: 42
+      # HDBSCAN
+      min_cluster_size: 2       # min_cluster_size sollte kleiner oder gleich der Anzahl der Dokumente sein
+      hdbscan_metric: "euclidean"
+      prediction_data: true
+      # BERTopic
+      language: "multilingual"
+      calculate_probabilities: true
+      verbose: true     
+  
+  #persistor:
+  #  name: 
+  #  config:
+  #    output_path: 

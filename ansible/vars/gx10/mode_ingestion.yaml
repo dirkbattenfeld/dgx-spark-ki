@@ -1,0 +1,10 @@
+docling_workers: 6
+
+infinity_embedding_model: "BAAI/bge-m3"
+infinity_reranker_model: "BAAI/bge-reranker-v2-m3"
+infinity_batch_size: 32
+
+vllm_model: "RedHatAI/Qwen3-8B-NVFP4"
+vllm_kv_cache_mem_util: 0.40
+vllm_max_model_len: 40000
+

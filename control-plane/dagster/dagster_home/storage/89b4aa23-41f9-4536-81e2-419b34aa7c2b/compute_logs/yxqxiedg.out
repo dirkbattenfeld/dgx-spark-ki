@@ -1,0 +1,30 @@
+
+--- [PERSISTOR OUTPUT] ---
+{
+  "run_id": "Path=/app/projects/ml/runs/002_randforest_opt_run_0001 with ID: 1",
+  "component_results": [
+    {
+      "component_id": "ml_runner",
+      "runcontext_summary.config.modeltype": "randomforest",
+      "runcontext_summary.config.config.n_estimators": 500,
+      "runcontext_summary.config.config.max_depth": 16,
+      "runcontext_summary.config.config.min_samples_split": 2,
+      "runcontext_summary.config.config.min_sample_leaf": 5,
+      "runcontext_summary.config.write_artifact": true,
+      "runcontext_summary.run_id": 1
+    },
+    {
+      "component_id": "sklearn_metrics",
+      "outputs_summary.results.accuracy": 0.7467532467532467,
+      "outputs_summary.results.precision": 0.6530612244897959,
+      "outputs_summary.results.recall": 0.5925925925925926,
+      "outputs_summary.results.f1": 0.6213592233009708,
+      "outputs_summary.results.roc_auc_score": 0.7112962962962963,
+      "outputs_summary.results.log_loss": 9.127938195945253,
+      "outputs_summary.results.balanced_accuracy_score": 0.7112962962962963
+    }
+  ],
+  "created_at": "2026-04-26T17:55:21.093955"
+}
+--- [END OUTPUT] ---
+

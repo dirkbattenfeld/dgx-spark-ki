@@ -1,0 +1,33 @@
+services:
+  vllm-nvfp4:
+    image: avarok/dgx-vllm-nvfp4-kernel:v22
+    container_name: vllm-nvfp4
+    restart: always
+    network_mode: host
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]    
+    volumes:
+      - ${HF_HOME}:/root/.cache/huggingface
+      - ${MODELS_EXTSSD}:/root/models
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - VLLM_USE_FLASHINFER_MOE_FP4=0
+      - VLLM_TEST_FORCE_FP8_MARLIN=1
+      - VLLM_NVFP4_GEMM_BACKEND=marlin
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+      - MODEL=nvidia/Qwen3-Next-80B-A3B-Instruct-NVFP4    #RedHatAI/Qwen3-Coder-Next-NVFP4
+      - PORT=8888
+      - GPU_MEMORY_UTIL=0.85      #0.6 zusammen mit msgx10-diffusers und FLUX.1 dev
+      - MAX_MODEL_LEN=65536       #Maximum bei Qwen3-80B: 262144 / 131072 / 65536 / Qwen 2.5: 32768/16384/8192
+      - MAX_NUM_SEQS=128
+      - VLLM_EXTRA_ARGS=--attention-backend flashinfer --kv-cache-dtype fp8
+    command: serve
+
+
+

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ki-sdk"  # Ein übergeordneter Name für dein Projekt-Repo
+version = "0.1.0"
+dependencies = [
+    # Hier kannst du Abhängigkeiten wie dagster, pydantic etc. direkt eintragen
+]
+
+[tool.setuptools]
+# Das Mapping sagt: Schau in "src", um Pakete zu finden
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+# "where" definiert den Wurzelordner für die Suche
+where = ["src"]
+# "include" stellt sicher, dass alle drei spezifisch gefunden werden
+include = ["ki_dgxsdk*", "ki_coder*"]

@@ -1,0 +1,41 @@
+type: ki_dagster.components.ai_pipeline.AIPipelineComponent
+
+attributes:
+  nodes:
+    - name: pipeline_gradient_boosting
+      node_id: 001_gradboost_opt
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_gradientboosting.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: none
+
+    - name: pipeline_randomforest
+      node_id: 002_randforest_opt
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_randomforest.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: none
+
+    - name: pipeline_logistic_regression
+      node_id: 003_logreg_opt
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_logisticregression.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: none
+
+    - name: pipeline_svc
+      node_id: 004_svc_opt
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_svc.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: none
+
+

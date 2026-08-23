@@ -1,0 +1,78 @@
+# System und ide caches
+.DS_Store
+Thumbs.db
+**/.Trash-1000/
+**/.Trash-*/
+
+# secrets
+.env*
+**/secrets*
+
+# VS Code
+.vscode/.history
+.vscode/workspace.json
+.vscode/continue
+
+# Jupyter Notebook Sicherheitskopien
+**/.ipynb_checkpoints/
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/.pyright_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+**/*.egg-info/
+
+# Cache
+cache/
+.cache/
+
+# Daten
+**/input/**
+**/output/**
+**/outputs/**
+**/projects/**
+**/Historie/**
+**/historie/**
+**/History/**
+**/history/**
+
+# Logs
+*.log
+**/logs/
+**/logs/**
+**/log/
+**/log/**
+
+# Deep Learning Daten und Modelle
+*.h5
+**/fida/**
+*.keras
+*.pkl
+
+# SQLite Datenbanken
+*.db
+
+# KI-PIPELINE & DAGSTER SPECIFICS
+**/ki-pipeline/cache/**
+**/ki-pipeline/dagster_home/**
+**/ki-pipeline/docker_compose/**
+
+# Garage-S3
+**/garage_data/
+
+# Qdrant Storage
+**/qdrant_storage/
+
+# Chainlit
+**/.files/
+**/.chainlit/translations/
+
+# Erlaube explizit die .gitkeep Dateien, damit leere Ordnerstrukturen im Repo bleiben
+!**/.gitkeep
+
+.aider*

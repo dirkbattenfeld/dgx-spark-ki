@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: optuna_user
+      POSTGRES_PASSWORD: optuna_pw
+      POSTGRES_DB: optuna
+    ports:
+      - "5434:5432"
+    volumes:
+      - optuna-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U optuna_user -d optuna"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-net
+
+  dagster:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+    image: ai-pipeline-base:v1
+    container_name: dagster
+    volumes:
+      - ./src:/app/src
+      - ./dagster_home:/app/dagster_home
+      - ./notebooks:/app/notebooks
+      - ./projects:/app/projects
+      - ./.vscode:/app/.vscode
+      - /home/dirk/models:/models
+    environment:
+      DAGSTER_HOME: /app/dagster_home
+      PYTHONPATH: /app/src
+      HF_TOKEN: "${HF_TOKEN}"
+      OPTUNA_DB_URL: postgresql+psycopg2://optuna_user:optuna_pw@postgres:5432/optuna
+      DAGSTER_DB_URL: postgresql://optuna_user:optuna_pw@postgres:5432/dagster_storage
+      RESULTS_DB_URL: postgresql+psycopg2://optuna_user:optuna_pw@postgres:5432/pipeline_results
+    user: "0:0"
+    command: dagster dev -h 0.0.0.0 -p 3000 -w /app/dagster_home/workspace.yaml
+    ports:
+      - "3000:3000"  # Dagster UI
+      - "8000:8000"  # FastAPI
+      - "5678:5678"  # debugpy
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ai-net
+
+volumes:
+  optuna-db-data:
+
+networks:
+  ai-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/24

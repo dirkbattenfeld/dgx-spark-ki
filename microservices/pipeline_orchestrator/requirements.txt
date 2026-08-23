@@ -1,0 +1,31 @@
+# --- Core API & Async Server ---
+fastapi==0.110.0
+uvicorn[standard]==0.28.0
+
+# --- Core Data & Models ---
+pydantic==2.10.4
+pyyaml==6.0.1
+numpy
+pandas
+openpyxl
+httpx
+qdrant-client
+fsspec==2026.4.0
+s3fs==2026.4.0
+
+# --- Utility & DevOps ---
+rich==13.7.0
+tqdm==4.66.1
+python-dotenv==1.2.2
+docker
+paramiko
+typer[all]
+
+# --- OpenTelemetry
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-httpx
+opentelemetry-instrumentation-requests
+opentelemetry-instrumentation-logging

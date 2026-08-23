@@ -1,0 +1,41 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+
+exporters:
+  debug:
+    verbosity: detailed
+
+    # ClickHouse-Exporter hinzufügen
+  clickhouse:
+    endpoint: "tcp://ch-server:9000?database=default"
+    username: "default"
+    password: ""
+    create_schema: true
+    # Erzwingt sofortiges Schreiben ohne langes Warten auf Batches
+    sending_queue:
+      num_consumers: 1
+      queue_size: 100
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [clickhouse, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [clickhouse, debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [clickhouse, debug]
+

@@ -1,0 +1,15 @@
+{
+  // Typprüfung global aktivieren
+  "typeCheckingMode": "strict",
+
+  // Warnungen gedämpft, um Explorations- und Framework-Code nicht zu blockieren
+  "reportAny": false,                    // Any-Typ erlaubt, aber sichtbar
+  "reportUnknownParameterType": false,   // Parameter ohne Typannotation erlaubt
+  "reportUnknownMemberType": false,      // Dynamische Attribute ohne Typ erlaubt
+  "reportMissingTypeStubs": "warning",   // Warnung für fehlende Type Stubs, nicht Fehler
+  "reportOptionalMemberAccess": "warning" // Warnung bei Optional-Zugriff, kein Fehler
+
+  // Optional: Du kannst einzelne Dateien oder Verzeichnisse ausschließen
+  // "exclude": ["dagster_home/**", "tests/**"]
+}
+

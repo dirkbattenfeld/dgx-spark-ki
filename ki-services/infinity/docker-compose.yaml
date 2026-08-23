@@ -1,0 +1,45 @@
+services:
+  infinity:
+#    build: .
+    image: gx10-infinity:v1
+    container_name: infinity
+    restart: always
+    volumes:
+      - ${HF_HOME}:/app/.cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    ports:
+      - "7997:7997"
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - HF_HOME=/app/.cache
+      - INFINITY_MODEL_ID=${INFINITY_EMBEDDING_MODEL}
+      - INFINITY_BATCH_SIZE=${INFINITY_BATCH_SIZE}
+    command:
+    - v2
+    - --model-id
+    - ${INFINITY_EMBEDDING_MODEL}
+    - --model-id
+    - ${INFINITY_RERANKER_MODEL}
+    - --port
+    - "7997"
+    - --device
+    - cuda
+    - --engine
+    - torch
+    - --dtype
+    - float16
+    - --batch-size
+    - "${INFINITY_BATCH_SIZE}"
+    - --model-warmup
+
+

@@ -1,0 +1,24 @@
+services:
+  dispatcher:
+    container_name: dispatcher
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+    env_file:
+      - ../../.env
+    image: dispatcher:v1.1
+    tty: true
+    stdin_open: true
+    working_dir: /app
+    restart: always
+    ports:
+      - "8000:8000"
+      - "9999:9999"
+    volumes:
+      - .:/app
+      - ../../configs:/spark/configs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000    # --app-dir /app --reload --reload-dir '.trigger' --reload-exclude '*.py'
+

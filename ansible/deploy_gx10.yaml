@@ -1,0 +1,46 @@
+---
+- name: Deploy GX10 AI Stack
+  hosts: gx10_host
+  gather_facts: true
+
+  vars_files:
+    - "vars/ryzon9.yaml"
+    - "vars/secrets_ryzon9.yaml"
+    - "vars/gx10/gx10.yaml"
+    - "vars/gx10/mode_{{ target_mode | default('request') }}.yaml"
+
+  vars:
+    base_dir: "/home/{{ ansible_user }}/docker/dgx-spark-stack"
+
+  tasks:
+    - name: 1. Generate gx10 specific .env file from template
+      template:
+        src: templates/gx10_env.j2
+        dest: "{{ base_dir }}/.env"
+        mode: '0644'
+
+    - name: 2. Manage Docling Service (Only if not skipped)
+      community.docker.docker_compose_v2:
+        project_src: "{{ ansible_env.HOME }}/docker/dgx-spark-stack/ki-services/docling"
+        env_files:
+          - "{{ base_dir }}/.env"
+        state: "{{ target_state | default('present') }}"
+      when: not (docling_skip | default(false))
+      tags: [docling]
+
+    - name: 3. Manage Infinity Service
+      community.docker.docker_compose_v2:
+        project_src: "{{ ansible_env.HOME }}/docker/dgx-spark-stack/ki-services/infinity"
+        env_files:
+          - "{{ base_dir }}/.env"
+        state: "{{ target_state | default('present') }}"
+      tags: [infinity]
+
+    - name: 4. Manage vLLM Service (Optimized for FP4 / Grace Blackwell)
+      community.docker.docker_compose_v2:
+        project_src: "{{ ansible_env.HOME }}/docker/dgx-spark-stack/ki-services/vllm"
+        env_files:
+          - "{{ base_dir }}/.env"
+        state: "{{ target_state | default('present') }}"
+      tags: [vllm]
+

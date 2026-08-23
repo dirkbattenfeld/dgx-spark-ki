@@ -1,0 +1,10 @@
+jobs:
+  - query: "What is known about the use of attention in the context of llms?"
+    limit: 12
+    top_n: 6
+    system_prompt: "Du bist ein extrem kompetenter technischer Assistent. Antworte kurz und präzise."
+
+  - query: "Erläutere Durchbrüche in den Benchmarks für Go spielende künstliche Intelligenz!"
+    limit: 8
+    top_n: 4
+    system_prompt: "Du bist ein Historiker für KI. Nutze eine akademische Sprache."

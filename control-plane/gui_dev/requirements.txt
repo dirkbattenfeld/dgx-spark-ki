@@ -1,0 +1,22 @@
+# Frontends & UI-Steuerung
+chainlit==2.11.1
+nicegui==3.14.0
+
+# Core, Daten-Validierung & Konfiguration
+pyyaml==6.0.3
+pydantic==2.13.4
+
+# Datenbank Anbindung an PostGreSql
+psycopg[binary]==3.3.4
+
+# Entwicklungs-Utilities (Auto-Reload im mounted Volume)
+watchdog==6.0.0
+
+# ASGI Server
+uvicorn==0.51.0
+
+# Redis
+redis==8.0.1
+
+# Clients
+qdrant-client

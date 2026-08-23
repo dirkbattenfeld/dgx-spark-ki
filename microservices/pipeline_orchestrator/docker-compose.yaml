@@ -1,0 +1,30 @@
+services:
+  pipeline-orchestrator:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+    image: pipeline-orchestrator:v1.0
+    container_name: pipeline-orchestrator
+    restart: always
+    env_file:
+      - ../../.env
+    ports:
+      - "8011:8011"
+    volumes:
+      # 1. Die App-Laufzeitumgebung des spezifischen Server-Entrypoints
+      - .:/app/microservices/pipeline_orchestrator
+
+      # 2. Code der Applikationen, Bibliotheken und Projekte aus dem Monorepo
+      - ../../applications:/app/applications
+      - ../../libs:/app/libs
+      - ../../configs:/app/configs
+      - ../../projects:/app/projects
+    environment:
+      PYTHONUNBUFFERED: 1
+      # Der PYTHONPATH spiegelt die Struktur exakt wider
+      PYTHONPATH: /app:/app/libs:/app/configs:/app/applications:/app/microservices
+
+    # Startet uvicorn mit Live-Reload (--reload) auf dem Workspace für sofortige Codeänderungen
+    command: uvicorn microservices.pipeline_orchestrator.main:app --host 0.0.0.0 --port 8011 # --reload
+    #command: tail -f /dev/null
+

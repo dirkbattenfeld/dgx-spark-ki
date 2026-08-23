@@ -1,0 +1,14 @@
+{
+  "files.exclude": {
+    "**/garage-s3/garage-s3/**": true,
+    "**/.git": true,
+    "**/__pycache__": true
+  },
+  "search.exclude": {
+    "**/garage-s3/garage-s3/**": true
+  },
+  "python.analysis.extraPaths": [
+    "/workspace/libs",
+    "/workspace/control-plane/controller/src"
+  ]
+}

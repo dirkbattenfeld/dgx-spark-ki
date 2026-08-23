@@ -1,0 +1,298 @@
+type: ki_dagster.components.ai_pipeline.AIPipelineComponent
+
+attributes:
+  nodes:
+    - name: pipeline_gradient_boosting
+      node_id: 001_gradboost_opt
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_gradientboosting.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: optuna
+      generator_config:
+        optuna_base:
+          study_name: "gradient_boosting_20260208"
+          sampler_type: "TPE"
+          pruner_type: "Median"
+          metric: "roc_auc_score"     
+          direction: "maximize"
+          n_trials: 50
+          target_component: "ml_runner"
+          parameter_prefix: "config"   # Für deepmerge bei ml_runner in die modelspecs
+        search_space:
+          n_estimators:
+            method: "suggest_int"
+            args: [200, 400]
+          learning_rate:
+            method: "suggest_float"
+            args: [0.01, 0.1]
+          max_depth:
+            method: "suggest_int"
+            args: [3, 10]
+
+    - name: pipeline_randomforest
+      node_id: 002_randforest_opt
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_randomforest.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: optuna
+      generator_config:
+        optuna_base:
+          study_name: "randomforest_20260208"
+          sampler_type: "TPE"
+          pruner_type: "Median"
+          metric: "roc_auc_score"  
+          direction: "maximize"
+          n_trials: 50
+          target_component: "ml_runner"
+          parameter_prefix: "config"   # Für deepmerge bei ml_runner in die modelspecs
+        search_space:
+          n_estimators:
+            method: "suggest_int"
+            args: [50, 200]
+          max_depth:
+            method: "suggest_int"
+            args: [3, 10]
+          min_samples_split:
+            method: "suggest_int"
+            args: [2, 10]
+
+    - name: pipeline_logistic_regression
+      node_id: 003_logreg_opt
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_logisticregression.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: optuna
+      generator_config:
+        optuna_base:
+          study_name: "logistic_regression_20260208"
+          sampler_type: "TPE"
+          pruner_type: "Median"
+          metric: "roc_auc_score"     
+          direction: "maximize"
+          n_trials: 50
+          target_component: "ml_runner"
+          parameter_prefix: "config"   # Für deepmerge bei ml_runner in die modelspecs
+        search_space:
+          C:
+            method: "suggest_float"
+            args: [0.001, 10.0]
+            log: True # Logarithmische Suche ist bei C entscheidend
+          solver:
+            method: "suggest_categorical"
+            args: [["lbfgs", "liblinear"]]
+          max_iter:
+            method: "suggest_int"
+            args: [100, 500]
+
+    - name: pipeline_svc
+      node_id: 004_svc_opt
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_svc.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: optuna
+      generator_config:
+        optuna_base:
+          study_name: "svc_20260208"
+          sampler_type: "TPE"
+          pruner_type: "Median"
+          metric: "roc_auc_score"  
+          direction: "maximize"
+          n_trials: 50
+          target_component: "ml_runner"
+          parameter_prefix: "config"   # Für deepmerge bei ml_runner in die modelspecs
+        search_space:
+          C:
+            method: "suggest_float"
+            args: [0.1, 100.0]
+            log: True
+          kernel:
+            method: "suggest_categorical"
+            args: [["rbf", "poly", "sigmoid"]]
+          degree:
+            method: "suggest_int"
+            args: [2, 5] # Nur relevant für poly kernel
+
+    - name: pipeline_kerasdense
+      node_id: 005_keras_opt
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_kerasdense.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: optuna
+      generator_config:
+        optuna_base:
+          study_name: "kerasdense_20260208"
+          sampler_type: "TPE"
+          pruner_type: "Median"
+          metric: "accuracy"     # Name der Metrik in SciKitLearnMetricsResult.results
+          direction: "maximize"
+          n_trials: 50
+          target_component: "ml_runner"
+          parameter_prefix: "config"   # Für deepmerge bei ml_runner in die modelspecs
+        search_space:
+          learning_rate:
+            method: "suggest_float"
+            args: [0.0005, 0.05]        
+
+    - name: pipeline_xgboost
+      node_id: 006_xgboost_opt
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_xgboost.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: optuna
+      generator_config:
+        optuna_base:
+          study_name: "xgboost_20260208"
+          sampler_type: "TPE"
+          metric: "roc_auc_score"     
+          direction: "maximize"
+          n_trials: 50
+          target_component: "ml_runner"
+          parameter_prefix: "config"   # Für deepmerge bei ml_runner in die modelspecs
+        search_space:
+          n_estimators:
+            method: "suggest_int"
+            args: [100, 1000, 100] # Start, Stop, Step
+          max_depth:
+            method: "suggest_int"
+            args: [3, 10]
+          learning_rate:
+            method: "suggest_float"
+            args: [0.01, 0.3]
+            log: True
+          subsample:
+            method: "suggest_float"
+            args: [0.5, 1.0]
+          colsample_bytree:
+            method: "suggest_float"
+            args: [0.5, 1.0]
+
+    - name: pipeline_analyze_studies
+      node_id: 000_analyze_studies
+      deps: 
+        - 001_gradboost_opt
+        - 002_randforest_opt
+        - 003_logreg_opt
+        - 004_svc_opt
+        - 005_keras_opt
+        - 006_xgboost_opt
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/analyze_study.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: none
+
+    - name: pipeline_ml_runner
+      node_id: ml_runner_template_I
+      deps:
+        - 000_analyze_studies
+      fan_out: 4
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_gradientboosting.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run"
+      generator_name: optuna
+      generator_config:
+        optuna_base:
+          study_name: "gradient_boosting_20260208"
+          sampler_type: "TPE"
+          pruner_type: "Median"
+          metric: "roc_auc_score"
+          direction: "maximize"
+          n_trials: 50
+          target_component: "ml_runner"
+          parameter_prefix: "config"   # Für deepmerge bei ml_runner in die modelspecs
+
+    - name: pipeline_analyze_studies
+      node_id: 001_analyze_studies
+      deps:
+        - ml_runner_template_I
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/analyze_study.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run"
+      generator_name: none
+
+    - name: pipeline_ml_runner
+      node_id: ml_runner_template_II
+      deps:
+        - 001_analyze_studies
+      fan_out: 2
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_gradientboosting.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run"
+      generator_name: optuna
+      generator_config:
+        optuna_base:
+          study_name: "gradient_boosting_20260208"
+          sampler_type: "TPE"
+          pruner_type: "Median"
+          metric: "roc_auc_score"
+          direction: "maximize"
+          n_trials: 50
+          target_component: "ml_runner"
+          parameter_prefix: "config"   # Für deepmerge bei ml_runner in die modelspecs
+
+    - name: pipeline_analyze_studies
+      node_id: 002_analyze_studies
+      deps:
+        - ml_runner_template_II
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/analyze_study.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run"
+      generator_name: none
+
+    - name: pipeline_ml_runner
+      node_id: ml_runner_template_III
+      deps:
+        - 002_analyze_studies
+      fan_out: 16
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/ml_gradientboosting.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run"
+      generator_name: optuna
+      generator_config:
+        optuna_base:
+          study_name: "gradient_boosting_20260208"
+          sampler_type: "TPE"
+          pruner_type: "Median"
+          metric: "roc_auc_score"
+          direction: "maximize"
+          n_trials: 50
+          target_component: "ml_runner"
+          parameter_prefix: "config"   # Für deepmerge bei ml_runner in die modelspecs
+
+    - name: pipeline_analyze_studies
+      node_id: 003_analyze_studies
+      deps:
+        - ml_runner_template_III
+      type: pipelineexecutor
+      base_path: "/app/projects/ml"
+      config_path: "configs/analyze_study.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run"
+      generator_name: none
+
+
+
+      

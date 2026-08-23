@@ -1,0 +1,61 @@
+{
+  "name": "ai-pipeline-dev",
+  "dockerComposeFile": "../docker-compose.yaml",
+  "service": "dagster",
+  "workspaceFolder": "/app",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "root",
+  "forwardPorts": [3000, 5678, 8000, 8080],
+  "containerEnv": {
+    /* Damit Python den 'src' Ordner als Modul-Quelle erkennt */
+    "PYTHONPATH": "/app/src:${PYTHONPATH}"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-python.black-formatter",
+        "ms-toolsai.jupyter",
+        "eamodio.gitlens",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml",
+        "ms-python.debugpy",
+        "ms-toolsai.datawrangler",
+        "njpwerner.autodocstring",
+        "mechatroner.rainbow-csv" // Super für JSONL/CSV
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.extraPaths": ["/app/src"],
+        /* PERFORMANCE: Indexing nur für das Projekt, nicht für das ganze System */
+        "python.analysis.indexing": true,
+        /* Verhindert, dass Jupyter-Notebooks den Kernel auf dem Host suchen */
+        "jupyter.notebookEditor.defaultKernel": "python3",
+        "python.analysis.exclude": [
+          "**/node_modules",
+          "**/__pycache__",
+          "**/.venv"
+        ],
+        "python.analysis.typeCheckingMode": "basic",
+
+        /* BLOCKADE: Verhindert, dass VS Code nach Mamba/Conda auf dem Host sucht */
+        "python.locator.conda": false,
+        "python.locator.mamba": false,
+        "python.locator.venv": false,
+        "python.locator.pipenv": false,
+        "python.locator.poetry": false,
+
+        /* TERMINAL & JUPYTER */
+        "python.terminal.activateEnvInCurrentTerminal": false,
+        "jupyter.jupytext.defaultNotebookFormat": "percent",
+        "jupyter.jupytext.pairNotebooksAutomatically": true,
+
+        /* GUI OPTIMIERUNG: Verhindert nervige Popups im Container */
+        "python.languageServer": "Pylance",
+        "workbench.startupEditor": "none"
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+type: ki_dagster.components.ai_pipeline.AIPipelineComponent
+
+attributes:
+  nodes:
+    - name: pipeline_execution
+      node_id: sentiment_test
+      type: pipelineexecutor
+      base_path: "/app/projects/sentiment"
+      config_path: "configs/sentiment.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: none
+      generator_config:
+        start: 2
+        batch_size: 5
+        batch_count: 1
+
+     

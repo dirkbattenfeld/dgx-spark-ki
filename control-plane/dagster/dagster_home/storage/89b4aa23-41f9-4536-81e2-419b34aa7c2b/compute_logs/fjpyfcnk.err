@@ -1,0 +1,37 @@
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34085 - LOGS_CAPTURED - Started capturing logs in process (pid: 34085).
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34085 - 004_svc_opt - STEP_START - Started execution of step "004_svc_opt".
+[2026-04-26 17:55:20,832] Build.004_svc_opt INFO : DEBUG (NodeExecutor): UpstreamData(nodes=[])
+[2026-04-26 17:55:20,832] Build.004_svc_opt INFO : NodeExecutor(004_svc_opt): Kein Node Override in Upstream-Daten gefunden. Nutze statische Config.
+[2026-04-26 17:55:20,832] Build.004_svc_opt INFO : Starting build phase...
+[2026-04-26 17:55:20,833] Build.004_svc_opt INFO : Build phase completed.
+[2026-04-26 17:55:20,834] Build.004_svc_opt INFO : Initializing pipeline...
+[2026-04-26 17:55:20,834] Build.004_svc_opt INFO : Pipeline initialized.
+[2026-04-26 17:55:20,834] Run.004_svc_opt INFO : Starting run phase...
+[2026-04-26 17:55:20,834] Run.004_svc_opt INFO : Overrides = {}
+[2026-04-26 17:55:20,834] Run.004_svc_opt INFO  [run_id=1]: Starting pipeline execution.
+[2026-04-26 17:55:20,834] Run.004_svc_opt INFO  [run_id=1]: Instantiating pipeline components.
+[2026-04-26 17:55:20,834] Run.004_svc_opt INFO  [run_id=1]: 4 components instantiated.
+[2026-04-26 17:55:20,834] Run.004_svc_opt INFO  [run_id=1]: Running component 'csvloader'.
+[2026-04-26 17:55:20,850] Run.004_svc_opt INFO : Stored artifact f284381185ca4b688ffbaed40661e84c (RawCSVData.df) at file:///app/projects/ml/runs/004_svc_opt_run_0001/csvloader/f284381185ca4b688ffbaed40661e84c/artifact.parquet
+[2026-04-26 17:55:20,850] Run.004_svc_opt INFO  [run_id=1]: Running component 'stratifiedsampler'.
+[2026-04-26 17:55:20,853] Run.004_svc_opt INFO : Stored artifact d51e8575e2334f6aabea43ced6bad9e0 (TrainTestSplit.X_train) at file:///app/projects/ml/runs/004_svc_opt_run_0001/stratifiedsampler/d51e8575e2334f6aabea43ced6bad9e0/artifact.parquet
+[2026-04-26 17:55:20,854] Run.004_svc_opt INFO : Stored artifact e750c2807a2249a3b374861d04955630 (TrainTestSplit.X_test) at file:///app/projects/ml/runs/004_svc_opt_run_0001/stratifiedsampler/e750c2807a2249a3b374861d04955630/artifact.parquet
+[2026-04-26 17:55:20,855] Run.004_svc_opt INFO : Stored artifact 8be28e345e3b4ed6bc2d5dc39d242b18 (TrainTestSplit.y_train) at file:///app/projects/ml/runs/004_svc_opt_run_0001/stratifiedsampler/8be28e345e3b4ed6bc2d5dc39d242b18/artifact.parquet
+[2026-04-26 17:55:20,855] Run.004_svc_opt INFO : Stored artifact 9d06fba1bf1a484db5c963e5903303f2 (TrainTestSplit.y_test) at file:///app/projects/ml/runs/004_svc_opt_run_0001/stratifiedsampler/9d06fba1bf1a484db5c963e5903303f2/artifact.parquet
+[2026-04-26 17:55:20,856] Run.004_svc_opt INFO  [run_id=1]: Running component 'ml_runner'.
+[2026-04-26 17:55:20,862] Run.004_svc_opt INFO : Stored artifact dc6e5286f406463dab6a96d5e760259a (SciKitLearnResult.predictions) at file:///app/projects/ml/runs/004_svc_opt_run_0001/ml_runner/dc6e5286f406463dab6a96d5e760259a/artifact.parquet
+[2026-04-26 17:55:20,862] Run.004_svc_opt INFO : Stored artifact 9722c6b9555744bd915902d975515264 (SciKitLearnResult.y_test) at file:///app/projects/ml/runs/004_svc_opt_run_0001/ml_runner/9722c6b9555744bd915902d975515264/artifact.parquet
+[2026-04-26 17:55:20,863] Run.004_svc_opt INFO : Stored artifact d621ba21994c4034a1bf9344c0df60e7 (SciKitLearnResult.spec) at file:///app/projects/ml/runs/004_svc_opt_run_0001/ml_runner/d621ba21994c4034a1bf9344c0df60e7/artifact.json
+[2026-04-26 17:55:20,863] Run.004_svc_opt INFO  [run_id=1]: Running component 'sklearn_metrics'.
+[2026-04-26 17:55:20,866] Run.004_svc_opt INFO  [run_id=1]: Ganzobjekt SciKitLearnMetricsResult wird als Artefakt gespeichert mit Serializer 'pydantic_json'
+[2026-04-26 17:55:20,866] Run.004_svc_opt INFO : Stored artifact 72db1fe94a4c44df95b6f501e43165bf (SciKitLearnMetricsResult) at file:///app/projects/ml/runs/004_svc_opt_run_0001/sklearn_metrics/72db1fe94a4c44df95b6f501e43165bf/artifact.json
+[2026-04-26 17:55:20,866] Run.004_svc_opt INFO  [run_id=1]: Run Summary gespeichert: /app/projects/ml/runs/004_svc_opt_run_0001/run_summary.json
+[2026-04-26 17:55:20,867] Run.004_svc_opt INFO  [run_id=1]: Run Summary gespeichert: /app/projects/ml/runs/004_svc_opt_run_0001/run_summary_complete.json
+[2026-04-26 17:55:20,867] Run.004_svc_opt INFO  [run_id=1]: Data Pipeline execution finished. Return Level: results
+[2026-04-26 17:55:20,867] Run.004_svc_opt INFO : Run phase completed.
+2026-04-26 17:55:20 +0000 - dagster - INFO - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 004_svc_opt - Asset Factory: Overrides Crawler hat 0 Node Overrides gefunden.
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34085 - 004_svc_opt - STEP_OUTPUT - Yielded output "result" of type "Any". (Type check passed).
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 004_svc_opt - Writing file at: /app/dagster_home/storage/004_svc_opt using PickledObjectFilesystemIOManager...
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34085 - 004_svc_opt - ASSET_MATERIALIZATION - Materialized value 004_svc_opt.
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34085 - 004_svc_opt - HANDLED_OUTPUT - Handled output "result" using IO manager "io_manager"
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34085 - 004_svc_opt - STEP_SUCCESS - Finished execution of step "004_svc_opt" in 100ms.

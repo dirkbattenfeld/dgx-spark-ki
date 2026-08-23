@@ -1,0 +1,48 @@
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34084 - LOGS_CAPTURED - Started capturing logs in process (pid: 34084).
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34084 - 003_logreg_opt - STEP_START - Started execution of step "003_logreg_opt".
+[2026-04-26 17:55:20,710] Build.003_logreg_opt INFO : DEBUG (NodeExecutor): UpstreamData(nodes=[])
+[2026-04-26 17:55:20,710] Build.003_logreg_opt INFO : NodeExecutor(003_logreg_opt): Kein Node Override in Upstream-Daten gefunden. Nutze statische Config.
+[2026-04-26 17:55:20,710] Build.003_logreg_opt INFO : Starting build phase...
+[2026-04-26 17:55:20,712] Build.003_logreg_opt INFO : Build phase completed.
+[2026-04-26 17:55:20,712] Build.003_logreg_opt INFO : Initializing pipeline...
+[2026-04-26 17:55:20,712] Build.003_logreg_opt INFO : Pipeline initialized.
+[2026-04-26 17:55:20,712] Run.003_logreg_opt INFO : Starting run phase...
+[2026-04-26 17:55:20,718] Run.003_logreg_opt INFO : Overrides = {}
+[2026-04-26 17:55:20,718] Run.003_logreg_opt INFO  [run_id=1]: Starting pipeline execution.
+[2026-04-26 17:55:20,718] Run.003_logreg_opt INFO  [run_id=1]: Instantiating pipeline components.
+[2026-04-26 17:55:20,718] Run.003_logreg_opt INFO  [run_id=1]: 4 components instantiated.
+[2026-04-26 17:55:20,718] Run.003_logreg_opt INFO  [run_id=1]: Running component 'csvloader'.
+[2026-04-26 17:55:20,748] Run.003_logreg_opt INFO : Stored artifact 29c59ff1cd5048d0a65100e4c73a76a3 (RawCSVData.df) at file:///app/projects/ml/runs/003_logreg_opt_run_0001/csvloader/29c59ff1cd5048d0a65100e4c73a76a3/artifact.parquet
+[2026-04-26 17:55:20,748] Run.003_logreg_opt INFO  [run_id=1]: Running component 'stratifiedsampler'.
+[2026-04-26 17:55:20,752] Run.003_logreg_opt INFO : Stored artifact 79d3db3b55b6441085416551601d06f1 (TrainTestSplit.X_train) at file:///app/projects/ml/runs/003_logreg_opt_run_0001/stratifiedsampler/79d3db3b55b6441085416551601d06f1/artifact.parquet
+[2026-04-26 17:55:20,753] Run.003_logreg_opt INFO : Stored artifact 1dd60431c89642718310deed876c8a37 (TrainTestSplit.X_test) at file:///app/projects/ml/runs/003_logreg_opt_run_0001/stratifiedsampler/1dd60431c89642718310deed876c8a37/artifact.parquet
+[2026-04-26 17:55:20,754] Run.003_logreg_opt INFO : Stored artifact e5cfaa2c9c0949f7a19f0147f1585b4d (TrainTestSplit.y_train) at file:///app/projects/ml/runs/003_logreg_opt_run_0001/stratifiedsampler/e5cfaa2c9c0949f7a19f0147f1585b4d/artifact.parquet
+[2026-04-26 17:55:20,755] Run.003_logreg_opt INFO : Stored artifact 9a00287cab774ae597b5faea61425f09 (TrainTestSplit.y_test) at file:///app/projects/ml/runs/003_logreg_opt_run_0001/stratifiedsampler/9a00287cab774ae597b5faea61425f09/artifact.parquet
+[2026-04-26 17:55:20,755] Run.003_logreg_opt INFO  [run_id=1]: Running component 'ml_runner'.
+/home/appuser/.local/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:1135: FutureWarning: 'penalty' was deprecated in version 1.8 and will be removed in 1.10. To avoid this warning, leave 'penalty' set to its default value and use 'l1_ratio' or 'C' instead. Use l1_ratio=0 instead of penalty='l2', l1_ratio=1 instead of penalty='l1', and C=np.inf instead of penalty=None.
+  warnings.warn(
+/home/appuser/.local/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:406: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=100).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+[2026-04-26 17:55:20,762] Run.003_logreg_opt INFO : Stored artifact 3fef2cc426fc4434a6653d67e99612e7 (SciKitLearnResult.predictions) at file:///app/projects/ml/runs/003_logreg_opt_run_0001/ml_runner/3fef2cc426fc4434a6653d67e99612e7/artifact.parquet
+[2026-04-26 17:55:20,763] Run.003_logreg_opt INFO : Stored artifact 52c467ae93e948ed9d59ade6aebc0ec8 (SciKitLearnResult.y_test) at file:///app/projects/ml/runs/003_logreg_opt_run_0001/ml_runner/52c467ae93e948ed9d59ade6aebc0ec8/artifact.parquet
+[2026-04-26 17:55:20,763] Run.003_logreg_opt INFO : Stored artifact 2a34eebe12214e14a45a9924e4f31c7e (SciKitLearnResult.spec) at file:///app/projects/ml/runs/003_logreg_opt_run_0001/ml_runner/2a34eebe12214e14a45a9924e4f31c7e/artifact.json
+[2026-04-26 17:55:20,763] Run.003_logreg_opt INFO  [run_id=1]: Running component 'sklearn_metrics'.
+[2026-04-26 17:55:20,767] Run.003_logreg_opt INFO  [run_id=1]: Ganzobjekt SciKitLearnMetricsResult wird als Artefakt gespeichert mit Serializer 'pydantic_json'
+[2026-04-26 17:55:20,767] Run.003_logreg_opt INFO : Stored artifact 45999a6f863d42a6a37866be5bb73346 (SciKitLearnMetricsResult) at file:///app/projects/ml/runs/003_logreg_opt_run_0001/sklearn_metrics/45999a6f863d42a6a37866be5bb73346/artifact.json
+[2026-04-26 17:55:20,767] Run.003_logreg_opt INFO  [run_id=1]: Run Summary gespeichert: /app/projects/ml/runs/003_logreg_opt_run_0001/run_summary.json
+[2026-04-26 17:55:20,768] Run.003_logreg_opt INFO  [run_id=1]: Run Summary gespeichert: /app/projects/ml/runs/003_logreg_opt_run_0001/run_summary_complete.json
+[2026-04-26 17:55:20,768] Run.003_logreg_opt INFO  [run_id=1]: Data Pipeline execution finished. Return Level: results
+[2026-04-26 17:55:20,768] Run.003_logreg_opt INFO : Run phase completed.
+2026-04-26 17:55:20 +0000 - dagster - INFO - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 003_logreg_opt - Asset Factory: Overrides Crawler hat 0 Node Overrides gefunden.
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34084 - 003_logreg_opt - STEP_OUTPUT - Yielded output "result" of type "Any". (Type check passed).
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 003_logreg_opt - Writing file at: /app/dagster_home/storage/003_logreg_opt using PickledObjectFilesystemIOManager...
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34084 - 003_logreg_opt - ASSET_MATERIALIZATION - Materialized value 003_logreg_opt.
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34084 - 003_logreg_opt - HANDLED_OUTPUT - Handled output "result" using IO manager "io_manager"
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34084 - 003_logreg_opt - STEP_SUCCESS - Finished execution of step "003_logreg_opt" in 120ms.

@@ -1,0 +1,42 @@
+services:
+  docling:
+#    build:
+#      context: ../..
+#      dockerfile: ki-services/docling/Dockerfile
+    env_file: ../../.env
+    image: docling:v1.2
+    container_name: docling
+    restart: always
+    shm_size: '4gb'
+    volumes:
+      - ./app:/app
+      - ../../libs:/libs
+      - ${HF_HOME}:/root/.cache/huggingface:ro
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - PYTORCH_ALLOC_CONF=expandable_segments:True
+      - HF_HOME=/root/.cache/huggingface
+      - TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata/
+      - HF_HUB_OFFLINE=1
+    ports:
+      - "8889:8889"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    working_dir: /app
+    tty: true
+    stdin_open: true
+#    command: tail -f /dev/null
+    command: uvicorn main:app --workers ${DOCLING_WORKERS:-1} --host 0.0.0.0 --port 8889
+    networks:
+      - rag_net
+
+networks:
+  rag_net:
+    driver: bridge
+

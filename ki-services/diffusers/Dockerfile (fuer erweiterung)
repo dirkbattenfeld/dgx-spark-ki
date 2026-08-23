@@ -1,0 +1,12 @@
+FROM msgx10-diffusers:v2
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir \
+    ... \
+    ... \
+    ...
+
+# Port-Freigabe für den FastAPI-Server
+EXPOSE 8889
+

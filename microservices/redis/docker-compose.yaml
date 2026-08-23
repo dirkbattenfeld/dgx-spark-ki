@@ -1,0 +1,43 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    container_name: redis
+    restart: always
+    env_file:
+      - ../../.env
+    command: redis-server --appendonly yes --protected-mode no
+    ports:
+      # Redis lauscht NUR auf dem sicheren Tailscale-Interface.
+      # - "100.67.8.64:6379:6379"
+      - "${REDIS_HOST}:${REDIS_PORT}:${REDIS_PORT}"
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redis_insight
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight_data:/data
+    depends_on:
+      - redis
+
+volumes:
+  redis_data:
+  redisinsight_data:
+    driver: local
+

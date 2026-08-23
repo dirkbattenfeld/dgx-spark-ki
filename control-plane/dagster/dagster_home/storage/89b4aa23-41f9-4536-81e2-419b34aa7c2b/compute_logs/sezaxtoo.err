@@ -1,0 +1,37 @@
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34082 - LOGS_CAPTURED - Started capturing logs in process (pid: 34082).
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34082 - 001_gradboost_opt - STEP_START - Started execution of step "001_gradboost_opt".
+[2026-04-26 17:55:20,711] Build.001_gradboost_opt INFO : DEBUG (NodeExecutor): UpstreamData(nodes=[])
+[2026-04-26 17:55:20,711] Build.001_gradboost_opt INFO : NodeExecutor(001_gradboost_opt): Kein Node Override in Upstream-Daten gefunden. Nutze statische Config.
+[2026-04-26 17:55:20,711] Build.001_gradboost_opt INFO : Starting build phase...
+[2026-04-26 17:55:20,713] Build.001_gradboost_opt INFO : Build phase completed.
+[2026-04-26 17:55:20,713] Build.001_gradboost_opt INFO : Initializing pipeline...
+[2026-04-26 17:55:20,713] Build.001_gradboost_opt INFO : Pipeline initialized.
+[2026-04-26 17:55:20,713] Run.001_gradboost_opt INFO : Starting run phase...
+[2026-04-26 17:55:20,717] Run.001_gradboost_opt INFO : Overrides = {}
+[2026-04-26 17:55:20,717] Run.001_gradboost_opt INFO  [run_id=1]: Starting pipeline execution.
+[2026-04-26 17:55:20,717] Run.001_gradboost_opt INFO  [run_id=1]: Instantiating pipeline components.
+[2026-04-26 17:55:20,717] Run.001_gradboost_opt INFO  [run_id=1]: 4 components instantiated.
+[2026-04-26 17:55:20,718] Run.001_gradboost_opt INFO  [run_id=1]: Running component 'csvloader'.
+[2026-04-26 17:55:20,748] Run.001_gradboost_opt INFO : Stored artifact d70702721df44f28847150390fc510fb (RawCSVData.df) at file:///app/projects/ml/runs/001_gradboost_opt_run_0001/csvloader/d70702721df44f28847150390fc510fb/artifact.parquet
+[2026-04-26 17:55:20,748] Run.001_gradboost_opt INFO  [run_id=1]: Running component 'stratifiedsampler'.
+[2026-04-26 17:55:20,752] Run.001_gradboost_opt INFO : Stored artifact c532a913f7184ffcb4333e89800370ed (TrainTestSplit.X_train) at file:///app/projects/ml/runs/001_gradboost_opt_run_0001/stratifiedsampler/c532a913f7184ffcb4333e89800370ed/artifact.parquet
+[2026-04-26 17:55:20,753] Run.001_gradboost_opt INFO : Stored artifact 4666563b54bb4196bd095aee8a6f4afc (TrainTestSplit.X_test) at file:///app/projects/ml/runs/001_gradboost_opt_run_0001/stratifiedsampler/4666563b54bb4196bd095aee8a6f4afc/artifact.parquet
+[2026-04-26 17:55:20,754] Run.001_gradboost_opt INFO : Stored artifact 4c157611451944b8b27e71753c38ce5b (TrainTestSplit.y_train) at file:///app/projects/ml/runs/001_gradboost_opt_run_0001/stratifiedsampler/4c157611451944b8b27e71753c38ce5b/artifact.parquet
+[2026-04-26 17:55:20,754] Run.001_gradboost_opt INFO : Stored artifact 0089fadfb634471b88af75fc82a80cd0 (TrainTestSplit.y_test) at file:///app/projects/ml/runs/001_gradboost_opt_run_0001/stratifiedsampler/0089fadfb634471b88af75fc82a80cd0/artifact.parquet
+[2026-04-26 17:55:20,754] Run.001_gradboost_opt INFO  [run_id=1]: Running component 'ml_runner'.
+[2026-04-26 17:55:21,050] Run.001_gradboost_opt INFO : Stored artifact ac645e8ad1bb4a959d640cd12109954f (SciKitLearnResult.predictions) at file:///app/projects/ml/runs/001_gradboost_opt_run_0001/ml_runner/ac645e8ad1bb4a959d640cd12109954f/artifact.parquet
+[2026-04-26 17:55:21,051] Run.001_gradboost_opt INFO : Stored artifact 3f19776b88bc4156b8839c2789918081 (SciKitLearnResult.y_test) at file:///app/projects/ml/runs/001_gradboost_opt_run_0001/ml_runner/3f19776b88bc4156b8839c2789918081/artifact.parquet
+[2026-04-26 17:55:21,051] Run.001_gradboost_opt INFO : Stored artifact 3edb080a31ef4f2c98cfd36c2684cfc1 (SciKitLearnResult.spec) at file:///app/projects/ml/runs/001_gradboost_opt_run_0001/ml_runner/3edb080a31ef4f2c98cfd36c2684cfc1/artifact.json
+[2026-04-26 17:55:21,051] Run.001_gradboost_opt INFO  [run_id=1]: Running component 'sklearn_metrics'.
+[2026-04-26 17:55:21,054] Run.001_gradboost_opt INFO  [run_id=1]: Ganzobjekt SciKitLearnMetricsResult wird als Artefakt gespeichert mit Serializer 'pydantic_json'
+[2026-04-26 17:55:21,054] Run.001_gradboost_opt INFO : Stored artifact ad11123c14c543df973064728efae319 (SciKitLearnMetricsResult) at file:///app/projects/ml/runs/001_gradboost_opt_run_0001/sklearn_metrics/ad11123c14c543df973064728efae319/artifact.json
+[2026-04-26 17:55:21,055] Run.001_gradboost_opt INFO  [run_id=1]: Run Summary gespeichert: /app/projects/ml/runs/001_gradboost_opt_run_0001/run_summary.json
+[2026-04-26 17:55:21,055] Run.001_gradboost_opt INFO  [run_id=1]: Run Summary gespeichert: /app/projects/ml/runs/001_gradboost_opt_run_0001/run_summary_complete.json
+[2026-04-26 17:55:21,055] Run.001_gradboost_opt INFO  [run_id=1]: Data Pipeline execution finished. Return Level: results
+[2026-04-26 17:55:21,055] Run.001_gradboost_opt INFO : Run phase completed.
+2026-04-26 17:55:21 +0000 - dagster - INFO - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 001_gradboost_opt - Asset Factory: Overrides Crawler hat 0 Node Overrides gefunden.
+2026-04-26 17:55:21 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34082 - 001_gradboost_opt - STEP_OUTPUT - Yielded output "result" of type "Any". (Type check passed).
+2026-04-26 17:55:21 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 001_gradboost_opt - Writing file at: /app/dagster_home/storage/001_gradboost_opt using PickledObjectFilesystemIOManager...
+2026-04-26 17:55:21 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34082 - 001_gradboost_opt - ASSET_MATERIALIZATION - Materialized value 001_gradboost_opt.
+2026-04-26 17:55:21 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34082 - 001_gradboost_opt - HANDLED_OUTPUT - Handled output "result" using IO manager "io_manager"
+2026-04-26 17:55:21 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34082 - 001_gradboost_opt - STEP_SUCCESS - Finished execution of step "001_gradboost_opt" in 413ms.

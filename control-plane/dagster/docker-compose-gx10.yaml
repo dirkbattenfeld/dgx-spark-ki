@@ -1,0 +1,61 @@
+services:
+  ai-db:
+    image: postgres:16-alpine
+    env_file:
+      - .env.secret
+    container_name: ai-db
+    environment:
+      POSTGRES_USER: ai_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: postgres # Standard-DB für den Admin-Login
+    ports:
+      - "5434:5432"
+    volumes:
+      - ai-data-volume:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d # Automatisches Anlegen der DBs
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_admin -d dagster_storage"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-net
+
+  dagster:
+#    build:
+#      context: .
+#      dockerfile: ./docker/pipe_rag/Dockerfile
+    image: ai-pipeline-rag-gx10:v1.1
+    env_file:
+      - .env
+      - .env.secret
+    container_name: dagster
+    environment:
+      HF_TOKEN: ${HF_TOKEN}
+      DAGSTER_HOME: /app/dagster_home
+      DAGSTER_DB_URL: postgresql://ai_admin:${DB_PASSWORD}@ai-db:5432/dagster_storage
+      # OPTUNA_DB_URL: postgresql+psycopg2://ai_admin:${DB_PASSWORD}@ai-db:5432/optuna_storage
+    volumes:
+      - ${HF_HOME}:/root/.cache/huggingface
+      - .:/app
+#      - ./code:/app/code
+#      - ./projects:/app/projects
+#      - ./dagster_home:/app/dagster_home
+    ports:
+      - "3000:3000"  # dagster UI
+      - "8010:8010"  # FastApiRunGenerator
+    depends_on:
+      ai-db:
+        condition: service_healthy
+    command:
+      dagster dev -h 0.0.0.0 -p 3000 -w /app/dagster_home/workspace.yaml
+    networks:
+      - ai-net
+
+volumes:
+  ai-data-volume:
+
+networks:
+  ai-net:
+    driver: bridge
+

@@ -1,0 +1,38 @@
+services:
+  ki-pipeline:
+#    build:
+#      context: .
+#      dockerfile: ./docker/pipe_rag/Dockerfile
+    env_file:
+      - ../../.env
+    image: ai-pipeline-base:v1
+    # Aktiviert das interaktive Terminal (entspricht -it bei docker run)
+    tty: true
+    stdin_open: true
+    volumes:
+      - ${HF_HOME}:/root/.cache/huggingface
+      - .:/app
+      - ../../projects:/app/projects    # umbauen -> /spark/projects
+      - ../../libs:/spark/libs
+      - ../../configs:/spark/configs
+    environment:
+      HF_TOKEN: ${HF_TOKEN}
+      PYTHONUNBUFFERED: 1
+      PYTHONPATH: /app:/app/src:/spark/libs:/spark/configs
+    ports:
+      - "8010:8010"  # FastApiRunGenerator
+    command: tail -f /dev/null
+    networks:
+      - ai-net
+
+networks:
+  ai-net:
+    driver: bridge
+
+
+
+
+
+
+
+

@@ -1,0 +1,29 @@
+services:
+  gui_dev:
+#    build:
+#      context: ../..
+#      dockerfile: control-plane/gui_dev/Dockerfile
+    env_file:
+      - ../../.env
+    image: gui_dev:v1.1
+    container_name: gui_dev
+    ports:
+      - "8080:8080"  # Chainlit
+      - "8501:8501"  # NiceGUI
+    tty: true
+    stdin_open: true
+
+    volumes:
+      # nur bei control planes wird der gesamte Workspace des Repos gemountet
+      - ../..:/workspace
+      # chainlit root directory
+      - .:/app
+      # code of basic applications, common libs and configs from dgx-spark-stack monorepo
+      - ../../applications:/spark/applications
+      - ../../libs:/spark/libs
+      - ../../configs:/spark/configs
+    environment:
+      PYTHONUNBUFFERED: 1
+      PYTHONPATH: /app:/app/src:/spark/libs:/spark/configs:/spark/applications
+    command: ${GUI_DEV_COMMAND}
+

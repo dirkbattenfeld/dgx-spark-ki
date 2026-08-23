@@ -1,0 +1,22 @@
+type: ki_dagster.components.ai_pipeline.AIPipelineComponent
+
+attributes:
+  nodes:
+    - name: pipeline_execution_qwen_config3
+      node_id: llm_test_qwen
+      type: pipelineexecutor
+      base_path: "/app/projects/llm_test"
+      config_path: "configs/llm-qwen.yaml"
+      build_log_path: "logs/build"
+      run_log_path: "logs/run" 
+      generator_name: none   
+
+        
+      
+      
+#      generator_name: repeat
+#      generator_config:
+#        repeats: 60
+
+
+     

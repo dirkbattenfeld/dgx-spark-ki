@@ -1,0 +1,64 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Aktuelle Datei (Ohne Dagster)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "subProcess": true
+    },
+    {
+      "name": "Dagster: Debugge meine Components (Attach)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "127.0.0.1",
+        "port": 5678
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/app"
+        }
+      ],
+      "justMyCode": false,
+      "subProcess": true
+    },
+    {
+    "name": "Dagster: Debug Subprozess (Port 5679)",
+    "type": "debugpy",
+    "request": "attach",
+    "connect": {
+        "host": "127.0.0.1",
+        "port": 5679
+    },
+    "pathMappings": [
+        {
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "/app"
+        }
+    ],
+    "justMyCode": false
+    },
+    {
+      "name": "Dagster: Debugge meine Assets (Attach)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "127.0.0.1",
+        "port": 5678
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}/src",
+          "remoteRoot": "/app/src"
+        }
+      ],
+      "justMyCode": true,
+      "subProcess": true
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "name": "DGX Spark Stack - Control Plane: Controller",
+  "dockerComposeFile": [
+    "../../control-plane/controller/docker-compose.yaml"
+  ],
+  "service": "controller",
+  "localEnvFile": "../../../.env",
+  "containerEnvFile": "../../../.env",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "root",
+  "forwardPorts": [8501, 8888, 3000],
+  "containerEnv": {
+    "PYTHONPATH": "/app:/app/src:/workspace:${PYTHONPATH}"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-python.black-formatter",
+        "ms-python.debugpy",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.datawrangler",
+        "nypwerner.autodocstring",
+        "mechatroner.rainbow-csv",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml",
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        "proitspace.zoo-code",
+        "continue.continue",
+        "landz.jsonl-studio"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.extraPaths": [
+          "/app",
+          "/app/src",
+          "/workspace"
+        ],
+        "python.analysis.indexing": true,
+        "jupyter.notebookEditor.defaultKernel": "python3",
+        "python.analysis.exclude": [
+          "**/node_modules",
+          "**/__pycache__",
+          "**/.venv",
+          "**/garage-s3/garage-s3/**"
+        ],
+        "python.analysis.typeCheckingMode": "basic",
+        "python.locator.conda": false,
+        "python.locator.mamba": false,
+        "python.locator.venv": false,
+        "python.locator.pipenv": false,
+        "python.locator.poetry": false,
+        "python.terminal.activateEnvInCurrentTerminal": false,
+        "jupyter.jupytext.defaultNotebookFormat": "percent",
+        "jupyter.jupytext.pairNotebooksAutomatically": true,
+        "python.languageServer": "Pylance",
+        "workbench.startupEditor": "none"
+      }
+    }
+  }
+}

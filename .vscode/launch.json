@@ -1,0 +1,90 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "🚀 Chainlit: Cockpit starten & debuggen",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "chainlit",
+      "subProcess": true,
+      "args": [
+        "run",
+        "/spark/applications/rag_gui/chainlit/ui.py",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080",
+        "--headless"
+      ],
+      "cwd": "/app",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "📊 NiceGUI: Dashboard starten & debuggen",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "/spark/applications/rag_gui/nicegui/ui.py",
+      "subProcess": true,
+      "cwd": "/app",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "/app",
+        "PORT": "8501",
+        "HOST": "0.0.0.0"
+      }
+    },
+    {
+      "name": "Python: Aktuelle Datei (Ohne Dagster)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "subProcess": true
+    },
+    {
+      "name": "Dagster: Debugge meine Components (Attach)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "127.0.0.1",
+        "port": 5678
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/workspace"
+        }
+      ],
+      "justMyCode": false,
+      "subProcess": true
+    },
+    {
+      "name": "Dagster: Debug Subprozess (Port 5679)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "127.0.0.1",
+        "port": 5679
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/workspace"
+        }
+      ],
+      "justMyCode": false
+    }
+  ],
+  "compounds": [
+    {
+      "name": "✨ BEIDE GUIs gleichzeitig starten & debuggen",
+      "configurations": [
+        "🚀 Chainlit: Cockpit starten & debuggen",
+        "📊 NiceGUI: Dashboard starten & debuggen"
+      ]
+    }
+  ]
+}

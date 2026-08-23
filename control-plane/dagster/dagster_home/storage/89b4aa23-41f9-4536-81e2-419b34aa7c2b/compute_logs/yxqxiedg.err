@@ -1,0 +1,37 @@
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34083 - LOGS_CAPTURED - Started capturing logs in process (pid: 34083).
+2026-04-26 17:55:20 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34083 - 002_randforest_opt - STEP_START - Started execution of step "002_randforest_opt".
+[2026-04-26 17:55:20,784] Build.002_randforest_opt INFO : DEBUG (NodeExecutor): UpstreamData(nodes=[])
+[2026-04-26 17:55:20,784] Build.002_randforest_opt INFO : NodeExecutor(002_randforest_opt): Kein Node Override in Upstream-Daten gefunden. Nutze statische Config.
+[2026-04-26 17:55:20,784] Build.002_randforest_opt INFO : Starting build phase...
+[2026-04-26 17:55:20,785] Build.002_randforest_opt INFO : Build phase completed.
+[2026-04-26 17:55:20,785] Build.002_randforest_opt INFO : Initializing pipeline...
+[2026-04-26 17:55:20,785] Build.002_randforest_opt INFO : Pipeline initialized.
+[2026-04-26 17:55:20,785] Run.002_randforest_opt INFO : Starting run phase...
+[2026-04-26 17:55:20,786] Run.002_randforest_opt INFO : Overrides = {}
+[2026-04-26 17:55:20,786] Run.002_randforest_opt INFO  [run_id=1]: Starting pipeline execution.
+[2026-04-26 17:55:20,786] Run.002_randforest_opt INFO  [run_id=1]: Instantiating pipeline components.
+[2026-04-26 17:55:20,786] Run.002_randforest_opt INFO  [run_id=1]: 4 components instantiated.
+[2026-04-26 17:55:20,786] Run.002_randforest_opt INFO  [run_id=1]: Running component 'csvloader'.
+[2026-04-26 17:55:20,802] Run.002_randforest_opt INFO : Stored artifact 474bc9cf47c64427a58efa208b4a8a20 (RawCSVData.df) at file:///app/projects/ml/runs/002_randforest_opt_run_0001/csvloader/474bc9cf47c64427a58efa208b4a8a20/artifact.parquet
+[2026-04-26 17:55:20,802] Run.002_randforest_opt INFO  [run_id=1]: Running component 'stratifiedsampler'.
+[2026-04-26 17:55:20,806] Run.002_randforest_opt INFO : Stored artifact 7742ddcd037147d68f9c5c738a834b1a (TrainTestSplit.X_train) at file:///app/projects/ml/runs/002_randforest_opt_run_0001/stratifiedsampler/7742ddcd037147d68f9c5c738a834b1a/artifact.parquet
+[2026-04-26 17:55:20,807] Run.002_randforest_opt INFO : Stored artifact d6d00994a71a4c60b08d4eb7d8d847d2 (TrainTestSplit.X_test) at file:///app/projects/ml/runs/002_randforest_opt_run_0001/stratifiedsampler/d6d00994a71a4c60b08d4eb7d8d847d2/artifact.parquet
+[2026-04-26 17:55:20,807] Run.002_randforest_opt INFO : Stored artifact 8817a6e383b043a88a90b10fa407aec8 (TrainTestSplit.y_train) at file:///app/projects/ml/runs/002_randforest_opt_run_0001/stratifiedsampler/8817a6e383b043a88a90b10fa407aec8/artifact.parquet
+[2026-04-26 17:55:20,808] Run.002_randforest_opt INFO : Stored artifact 764154129f984e90952d47727db6f628 (TrainTestSplit.y_test) at file:///app/projects/ml/runs/002_randforest_opt_run_0001/stratifiedsampler/764154129f984e90952d47727db6f628/artifact.parquet
+[2026-04-26 17:55:20,808] Run.002_randforest_opt INFO  [run_id=1]: Running component 'ml_runner'.
+[2026-04-26 17:55:21,089] Run.002_randforest_opt INFO : Stored artifact 5b6084507f8a4c00a4e92ab757c84b71 (SciKitLearnResult.predictions) at file:///app/projects/ml/runs/002_randforest_opt_run_0001/ml_runner/5b6084507f8a4c00a4e92ab757c84b71/artifact.parquet
+[2026-04-26 17:55:21,090] Run.002_randforest_opt INFO : Stored artifact f63d4c57d1ce40b29cb0f66b3ba4bb71 (SciKitLearnResult.y_test) at file:///app/projects/ml/runs/002_randforest_opt_run_0001/ml_runner/f63d4c57d1ce40b29cb0f66b3ba4bb71/artifact.parquet
+[2026-04-26 17:55:21,090] Run.002_randforest_opt INFO : Stored artifact 979407fb4dad404ea5898784c77cdb69 (SciKitLearnResult.spec) at file:///app/projects/ml/runs/002_randforest_opt_run_0001/ml_runner/979407fb4dad404ea5898784c77cdb69/artifact.json
+[2026-04-26 17:55:21,090] Run.002_randforest_opt INFO  [run_id=1]: Running component 'sklearn_metrics'.
+[2026-04-26 17:55:21,093] Run.002_randforest_opt INFO  [run_id=1]: Ganzobjekt SciKitLearnMetricsResult wird als Artefakt gespeichert mit Serializer 'pydantic_json'
+[2026-04-26 17:55:21,093] Run.002_randforest_opt INFO : Stored artifact ae4e9c9342684d0c8c440be5725b9c47 (SciKitLearnMetricsResult) at file:///app/projects/ml/runs/002_randforest_opt_run_0001/sklearn_metrics/ae4e9c9342684d0c8c440be5725b9c47/artifact.json
+[2026-04-26 17:55:21,094] Run.002_randforest_opt INFO  [run_id=1]: Run Summary gespeichert: /app/projects/ml/runs/002_randforest_opt_run_0001/run_summary.json
+[2026-04-26 17:55:21,094] Run.002_randforest_opt INFO  [run_id=1]: Run Summary gespeichert: /app/projects/ml/runs/002_randforest_opt_run_0001/run_summary_complete.json
+[2026-04-26 17:55:21,094] Run.002_randforest_opt INFO  [run_id=1]: Data Pipeline execution finished. Return Level: results
+[2026-04-26 17:55:21,094] Run.002_randforest_opt INFO : Run phase completed.
+2026-04-26 17:55:21 +0000 - dagster - INFO - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 002_randforest_opt - Asset Factory: Overrides Crawler hat 0 Node Overrides gefunden.
+2026-04-26 17:55:21 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34083 - 002_randforest_opt - STEP_OUTPUT - Yielded output "result" of type "Any". (Type check passed).
+2026-04-26 17:55:21 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 002_randforest_opt - Writing file at: /app/dagster_home/storage/002_randforest_opt using PickledObjectFilesystemIOManager...
+2026-04-26 17:55:21 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34083 - 002_randforest_opt - ASSET_MATERIALIZATION - Materialized value 002_randforest_opt.
+2026-04-26 17:55:21 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34083 - 002_randforest_opt - HANDLED_OUTPUT - Handled output "result" using IO manager "io_manager"
+2026-04-26 17:55:21 +0000 - dagster - DEBUG - __ASSET_JOB - 89b4aa23-41f9-4536-81e2-419b34aa7c2b - 34083 - 002_randforest_opt - STEP_SUCCESS - Finished execution of step "002_randforest_opt" in 377ms.

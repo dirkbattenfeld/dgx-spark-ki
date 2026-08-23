@@ -1,0 +1,281 @@
+services:
+  vllm:
+    host: "100.117.200.75"
+    port: 8888
+    queue_id: "standard"
+    batching: true
+    max_batch_size: 16
+    model_name: "" 
+    endpoints:
+      chat:
+        path: "/v1/chat/completions"
+
+  docling:
+    host: "100.117.200.75"
+    port: 8889
+    queue_id: "standard"
+    batching: true
+    max_batch_size: 10
+    endpoints:
+      extract:
+        path: "/extract"
+        defaults:
+          source_pdf: ""
+          start_page: null
+          end_page: null
+          detailed_tables: true
+          ocr_enabled: true
+        input_mapping:
+          source_pdf: "source_pdf"
+          start_page: "start_page"
+          end_page: "end_page"
+          detailed_tables: "detailed_tables"
+          ocr_enabled: "ocr_enabled"
+        nested_mappings: {}
+        output_mapping:
+          json_path: "json_path"
+          markdown_path: "markdown_path"
+          tables_path: "tables_path"
+          log_path: "log_path"
+          status: "status"
+          markdown: "markdown"
+          meta_processed:
+            pages: "meta_processed.pages"
+            table_mode: "meta_processed.table_mode"
+            ocr_active: "meta_processed.ocr_active"
+            cuda_device: "meta_processed.cuda_device"
+            extracted_tables_count: "meta_processed.extracted_tables_count"
+
+      chunk:
+        path: "/chunk"
+        defaults:
+          json_path: ""
+          source_path: ""
+          config:
+            tokenizer_name: "BAAI/bge-m3"
+            child_max_tokens: 1024
+            max_child_chunks_per_parent: 6
+            parent_overlap_chunks: 1
+            merge_peers: true
+        input_mapping:
+          json_path: "json_path"
+          source_path: "source_path"
+          tokenizer_name: "config.tokenizer_name"
+          child_max_tokens: "config.child_max_tokens"
+          max_child_chunks_per_parent: "config.max_child_chunks_per_parent"
+          parent_overlap_chunks: "config.parent_overlap_chunks"
+          merge_peers: "config.merge_peers"
+        nested_mappings:
+          tokenizer_name: "config.tokenizer_name"
+          child_max_tokens: "config.child_max_tokens"
+          max_child_chunks_per_parent: "config.max_child_chunks_per_parent"
+          parent_overlap_chunks: "config.parent_overlap_chunks"
+          merge_peers: "config.merge_peers"
+        output_mapping:
+          parents: "parents"
+          children: "children"
+          metadata:
+            total_parents: "metadata.total_parents"
+            total_children: "metadata.total_children"
+            tokenizer: "metadata.tokenizer"
+
+  rag_pipeline_service:
+    host: "100.67.8.64"
+    port: 8011
+    queue_id: "orchestrated"
+    batching: false
+    endpoints:
+      
+      # -------------------------------------------------------------
+      # 1. RAG Request Pipeline (Anfragen & Chat)
+      # -------------------------------------------------------------
+      rag_request:
+        path: "/api/v1/pipelines/run"
+        defaults:
+          pipeline_id: "rag_request"
+          payload: {}
+          overrides:
+            GenerateLLM:
+              system_prompt: "Du bist ein hilfreicher KI-Assistent."
+              max_tokens: 512
+              generate: true
+        input_mapping:
+          # Payload-Mappings (für den Intro-Hook der Pipeline)
+          prompt_query: "payload.prompt_query"
+          prompt_llm: "payload.prompt_llm"
+          
+          # Overrides-Mappings (für Step-Configs)
+          collection_name: "overrides.SearchQdrant.collection_name"
+          limit: "overrides.SearchQdrant.limit"
+          score_threshold: "overrides.SearchQdrant.score_threshold"
+          top_n: "overrides.RerankBGE.top_n"
+          collection_name_parents: "overrides.FetchParents.collection_name"
+          generate: "overrides.GenerateLLM.generate"
+          max_tokens: "overrides.GenerateLLM.max_tokens"
+          temperature: "overrides.GenerateLLM.temperature"
+          no_think: "overrides.GenerateLLM.no_think"
+          max_content_chars: "overrides.GenerateLLM.max_content_chars"
+          system_prompt: "overrides.GenerateLLM.system_prompt"
+
+        output_mapping:
+            answer: "data.results.GenerateLLM.answer"
+            chunks: "data.results.FetchParents.hits"
+
+            # Metadaten zur Generierung für den Header des Dashboards
+            generation_info: 
+              model: "data.results.GenerateLLM.model"
+              prompt_raw: "data.results.GenerateLLM.prompt"
+              tokens_input: "data.results.GenerateLLM.prompt_tokens"
+              tokens_output: "data.results.GenerateLLM.completion_tokens"
+              total_tokens: "data.results.GenerateLLM.extras.total_tokens"
+              context_blocks_used: "data.results.GenerateLLM.extras.context_blocks_used"
+                  
+            # --- Execution Meta ---
+            meta:
+              run_id: "data.results._meta.run_id"
+              pipeline_status: "data.pipeline_status.status"
+              step_status: "data.pipeline_status.steps"
+              pipeline_id: "pipeline_id"   
+    
+
+      # -------------------------------------------------------------
+      # 2. RAG Ingestion Single Pipeline (Verarbeitung lokaler/einzelner Files)
+      # -------------------------------------------------------------
+      rag_ingestion_single:
+        path: "/api/v1/pipelines/run"
+        defaults:
+          pipeline_id: "rag_ingestion_single"
+          payload: {}
+          overrides: {}
+        input_mapping:
+          # Der Payload für Single-Ingestion ist eine Liste von File-Objekten/Pfaden
+          source_path: "payload.source_path"
+
+          # Optionale Overrides für Ingestion-Steps
+          collection_name: "overrides.StoreQdrant.collection_name"
+          child_max_tokens: "overrides.chunk.child_max_tokens"
+          detailed_tables: "overrides.extract.detailed_tables"
+          ocr_enabled: "overrides.extract.ocr_enabled"
+          s3_bucket: "overrides.env.s3_bucket"
+
+        output_mapping:
+          # --- Status & Pipeline Identifikatoren ---
+          pipeline_status: "status"  # Status aus API payload (top level)
+          pipeline_id: "pipeline_id"
+          run_id: "data.results._meta.run_id"
+
+          # --- Primary Content (Redundanzfrei aus Contextualize bezogen) ---
+          chunks: "data.results.Contextualize.chunks"
+          parent_chunks: "data.results.Contextualize.parent_chunks"
+
+          # --- Source Info ---
+          source_path: "data.results.Extract.source_path"
+          json_path: "data.results.Extract.json_path"
+
+          # --- Metrics & Persistence (1-Ebene Tief für SDK-Kompatibilität) ---
+          metrics:
+            total_parents: "data.results.Chunk.extras.total_parents"
+            total_children: "data.results.Chunk.extras.total_children"
+            chunks_stored: "data.results.StoreQdrant.chunks_stored"
+            parent_chunks_stored: "data.results.StoreQdrant.parent_chunks_stored"
+            collection_name: "data.results.StoreQdrant.collection_name"
+            store_status: "data.results.StoreQdrant.status"
+
+          meta:
+            run_id: "data.results._meta.run_id"
+            pipeline_status: "data.result.status"  # Status aus Pipeline Steps
+            pipeline_id: "pipeline_id"   
+
+      # -------------------------------------------------------------
+      # 3. RAG Ingestion Streaming Pipeline (Verarbeitung via S3 Globbing)
+      # -------------------------------------------------------------
+      rag_ingestion_streaming:
+        path: "/api/v1/pipelines/run"
+        defaults:
+          pipeline_id: "rag_ingestion_streaming"
+          payload: {}
+          overrides: {}
+        input_mapping:
+          # Payload zur Steuerung des S3-Scans im Intro-Hook
+          s3_bucket: "payload.s3_bucket"
+          s3_glob_pattern: "payload.s3_glob_pattern"
+          
+          # Overrides
+          collection_name: "overrides.StoreQdrant.collection_name"
+          child_max_tokens: "overrides.chunk.child_max_tokens"
+          detailed_tables: "overrides.extract.detailed_tables"
+          ocr_enabled: "overrides.extract.ocr_enabled"
+          max_concurrent_documents: "overrides.env.max_concurrent_documents"
+        
+        output_mapping:
+          # --- Status & Pipeline Identifikatoren ---
+          pipeline_status: "data.pipeline_status"
+          
+          # --- Aggregiertes Outro-Ergebnis ---
+          summary: "data.summary"
+          processed_files: "data.processed_files"
+          
+          meta:
+            run_id: "data.run_id"
+            pipeline_status: "data.pipeline_status"
+            pipeline_id: "pipeline_id"   
+      
+  flux:
+    host: "100.117.200.75"
+    port: 8890 
+    queue_id: "standard"
+    batching: false
+    endpoints:
+      generate:
+        path: "/generate"
+        defaults:
+          prompt: ""
+          image_size: "1024x1024"
+          num_inference_steps: 4
+          guidance_scale: 3.5
+          seed: null
+        nested_mappings: {}
+        output_mapping:
+          file: "filename"
+          absolute_path: "image_path"
+          status: "status"
+
+  infinity:
+    host: "100.117.200.75"
+    port: 7997
+    queue_id: "standard"
+    batching: true
+    max_batch_size: 32
+    endpoints:
+      embeddings:
+        path: "/embeddings"
+        defaults:
+          model: "BAAI/bge-m3"
+          input: []
+        nested_mappings: {}
+      rerank:
+        path: "/rerank"
+        defaults:
+          model: "BAAI/bge-reranker-v2-m3"
+          query: ""
+          documents: []
+          top_n: 5
+        nested_mappings: {}
+
+  qdrant:
+    host: "100.67.8.64"  
+    port: 6333
+    queue_id: "qdrant"
+    batching: false
+    endpoints:
+      query_points:
+        path: "/collections/{collection_name}/points/query"
+        defaults:
+          query: []
+          using: "dense"
+          limit: 100
+          score_threshold: 0.2
+          with_payload: true
+        nested_mappings: {}
+
+

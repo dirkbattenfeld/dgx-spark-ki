@@ -1,0 +1,53 @@
+services:
+  garage:
+    image: waazaafr/garage-s3-simple:latest
+    container_name: garage_s3
+    restart: always
+    env_file:
+      - ../../.env
+    ports:
+      - "3902:3902"  # Zugriff für Web-Server
+      - "4080:4080"  # Schicke Web-UI zum Anschauen im Browser
+      - "3903:3903"  # Admin API
+      - "9000:9000"  # S3 API Endpunkt
+    environment:
+      # Da es lokal auf deinem PC im Docker-Netz läuft, binden wir es auf alle Interfaces (0.0.0.0)
+      - NODE_IP=127.0.0.1
+      - GATEWAY=0.0.0.0
+      - ADMIN_TOKEN=${GARAGE_ADMIN_TOKEN}
+      - WEBUI_ENABLED=true
+    volumes:
+      # Bind Mounts
+      - ./garage_data/config:/config
+      - ./garage_data/data:/data
+
+      # Named Volume:
+      - garage_meta:/meta
+    networks:
+      - ai-network
+
+  webui:
+    image: khairul169/garage-webui:latest
+    container_name: garage-webui
+    restart: always
+    env_file:
+      - ../../.env
+    volumes:
+      - ./garage_data/config/garage.toml:/etc/garage.toml:ro
+    ports:
+      - 3909:3909
+    environment:
+      API_BASE_URL: "http://garage_s3:3903"
+      S3_ENDPOINT_URL: "http://garage_s3:9000"
+      API_ADMIN_KEY: "${GARAGE_ADMIN_TOKEN}"
+      AWS_S3_FORCE_PATH_STYLE: "true"
+      AWS_EC2_METADATA_DISABLED: "true"
+    networks:
+      - ai-network
+
+volumes:
+  garage_meta:
+
+networks:
+  ai-network:
+    driver: bridge

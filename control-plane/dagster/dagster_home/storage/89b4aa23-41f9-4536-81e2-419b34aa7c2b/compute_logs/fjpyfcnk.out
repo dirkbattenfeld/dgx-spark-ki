@@ -1,0 +1,29 @@
+
+--- [PERSISTOR OUTPUT] ---
+{
+  "run_id": "Path=/app/projects/ml/runs/004_svc_opt_run_0001 with ID: 1",
+  "component_results": [
+    {
+      "component_id": "ml_runner",
+      "runcontext_summary.config.modeltype": "svc",
+      "runcontext_summary.config.config.C": 1.0,
+      "runcontext_summary.config.config.kernel": "rbf",
+      "runcontext_summary.config.config.degree": 3,
+      "runcontext_summary.config.write_artifact": true,
+      "runcontext_summary.run_id": 1
+    },
+    {
+      "component_id": "sklearn_metrics",
+      "outputs_summary.results.accuracy": 0.7207792207792207,
+      "outputs_summary.results.precision": 0.6571428571428571,
+      "outputs_summary.results.recall": 0.42592592592592593,
+      "outputs_summary.results.f1": 0.5168539325842697,
+      "outputs_summary.results.roc_auc_score": 0.652962962962963,
+      "outputs_summary.results.log_loss": 10.06413698527297,
+      "outputs_summary.results.balanced_accuracy_score": 0.652962962962963
+    }
+  ],
+  "created_at": "2026-04-26T17:55:20.866611"
+}
+--- [END OUTPUT] ---
+

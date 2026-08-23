@@ -1,0 +1,36 @@
+services:
+  msgx10-diffusers:
+    env_file:
+      - ../../.env
+    container_name: diffusers
+    image: gx10-diffusers:v2
+    shm_size: '64gb'
+    network_mode: host
+    ipc: host
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      # Optimierung für PyTorch & Blackwell
+      - TORCH_CUDNN_V8_API_ENABLED=1
+      - CUDA_MODULE_LOADING=LAZY
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    volumes:
+      - ${HF_HOME}:/root/.cache/huggingface
+      - ${MODELS_EXTSSD}:/root/models
+      - /home/dirk/docker/dgx-spark-stack/ki-services/diffusers/app:/app
+    working_dir: /app
+    stdin_open: true
+    tty: true
+#    command: tail -f /dev/null
+#    command: uvicorn app.main:app --host 0.0.0.0 --port 8889 --app-dir /app --reload --reload-include '.trigger' reload-exclude '*.py'    # für entwicklung
+    command: uvicorn main-Flux1:app --host 0.0.0.0 --port 8889
+
+

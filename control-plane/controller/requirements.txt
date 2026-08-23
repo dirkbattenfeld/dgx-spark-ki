@@ -1,0 +1,43 @@
+# --- Core & Data ---
+pydantic==2.10.4
+pyyaml==6.0.1
+numpy
+pandas
+openpyxl
+httpx
+qdrant-client
+fsspec==2026.4.0
+s3fs==2026.4.0
+
+# --- Frontend & Visualisierung ---
+streamlit
+chainlit
+plotly
+matplotlib
+seaborn
+altair
+
+# --- Dev & Notebooks ---
+ipywidgets==8.1.1
+ipykernel
+jupytext
+nbformat
+rich==13.7.0
+tqdm==4.66.1
+jupyterlab
+
+# --- CLI & DevOps ---
+typer[all]
+python-dotenv==1.2.2
+docker
+paramiko
+
+# --- OpenTelemetry
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-httpx
+opentelemetry-instrumentation-requests
+opentelemetry-instrumentation-logging
+
