@@ -7,10 +7,12 @@
   "localEnvFile": "../../../.env",
   "containerEnvFile": "../../../.env",
   "workspaceFolder": "/workspace",
-  "shutdownAction": "stopCompose",
+  "shutdownAction": "none",
   "remoteUser": "root",
+  "overrideCommand": false,
   "forwardPorts": [
-    8080
+    8080,
+    8501
   ],
   "containerEnv": {
     "PYTHONPATH": "/app:/app/src:/spark/libs:/spark/configs:/spark/applications:${PYTHONPATH}"

@@ -1,7 +1,11 @@
-.PHONY: help up-ryzon9 up-acer down-ryzon9 down-acer gx10
+.PHONY: help up down gx10
 
 # Standard-Ziel, das ausgeführt wird, wenn man nur 'make' eintippt
 .DEFAULT_GOAL := help
+
+# Parameter-Defaults für den GX10
+MODE ?= request
+STATE ?= present
 
 help: ## Zeigt diese Hilfe an
 	@echo "Verfügbare Befehle:"
@@ -10,24 +14,14 @@ help: ## Zeigt diese Hilfe an
 	@echo "-----------------------------------------------------------------------"
 	@echo "Beispiel: make -j up-acer gx10 MODE=request"
 
-# 1. RAG Stack auf Ryzon9 AUßER GUI (da VSCode das dort im dev mode macht)
-up-ryzon9: ## RAG Stack auf Ryzon9 starten (ohne GUI)
-	ansible-playbook -i ansible/inventory.ini ansible/deploy.yaml -e target_host=ryzon9 --skip-tags gui_dev
+# RAG Stack auf aktivem PC (s. active_pc_host in main.yaml) starten
+up: ## RAG Stack auf Ryzon9 starten (ohne GUI)
+	ansible-playbook -i ansible/inventory.ini ansible/deploy_pc.yaml
 
-down-ryzon9: ## RAG Stack auf Ryzon9 stoppen
-	ansible-playbook -i ansible/inventory.ini ansible/deploy.yaml -e target_host=ryzon9 -e target_state=absent
+down: ## RAG Stack auf aktivem PC stoppen
+	ansible-playbook -i ansible/inventory.ini ansible/deploy_pc.yaml -e target_state=absent
 
-# 2. RAG Stack auf Acer INKLUSIVE GUI
-up-acer: ## RAG Stack auf Acer starten (inklusive GUI)
-	ansible-playbook -i ansible/inventory.ini ansible/deploy.yaml -e target_host=acer
-
-down-acer: ## RAG Stack auf Acer stoppen
-	ansible-playbook -i ansible/inventory.ini ansible/deploy.yaml -e target_host=acer -e target_state=absent
-
-# 3. GX10 Remote Steuerung mit den Argumenten: MODE (request, ingestion, kombi) und STATE (present, absent)
-MODE ?= request
-STATE ?= present
-
+# GX10 Remote Steuerung mit den Argumenten: MODE (request, ingestion, kombi) und STATE (present, absent)
 gx10: ## GX10 Microservices remote starten/stoppen: make gx10 MODE=[request|ingestion|kombi] STATE=[present|absent]
 	ansible-playbook -i ansible/inventory.ini ansible/deploy_gx10.yaml \
 		-e target_mode=$(MODE) \

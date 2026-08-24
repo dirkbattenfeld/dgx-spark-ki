@@ -1,6 +1,6 @@
 services:
   vllm:
-    host: "100.117.200.75"
+    host: "{{ vllm_ip }}"
     port: 8888
     queue_id: "standard"
     batching: true
@@ -11,7 +11,7 @@ services:
         path: "/v1/chat/completions"
 
   docling:
-    host: "100.117.200.75"
+    host: "{{ docling_ip }}"
     port: 8889
     queue_id: "standard"
     batching: true
@@ -80,7 +80,7 @@ services:
             tokenizer: "metadata.tokenizer"
 
   rag_pipeline_service:
-    host: "100.67.8.64"
+    host: "{{ rag_pipeline_service_ip }}"
     port: 8011
     queue_id: "orchestrated"
     batching: false
@@ -221,7 +221,7 @@ services:
             pipeline_id: "pipeline_id"   
       
   flux:
-    host: "100.117.200.75"
+    host: "{{ flux_ip }}"
     port: 8890 
     queue_id: "standard"
     batching: false
@@ -241,7 +241,7 @@ services:
           status: "status"
 
   infinity:
-    host: "100.117.200.75"
+    host: "{{ infinity_ip }}"
     port: 7997
     queue_id: "standard"
     batching: true
@@ -263,7 +263,7 @@ services:
         nested_mappings: {}
 
   qdrant:
-    host: "100.67.8.64"
+    host: "{{ qdrant_ip }}"
     port: 6333
     queue_id: "qdrant"
     batching: false

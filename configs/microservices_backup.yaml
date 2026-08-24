@@ -263,7 +263,7 @@ services:
         nested_mappings: {}
 
   qdrant:
-    host: "100.67.8.64"
+    host: "100.67.8.64"  
     port: 6333
     queue_id: "qdrant"
     batching: false

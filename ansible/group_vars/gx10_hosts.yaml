@@ -2,3 +2,7 @@
 hf_home: "/mnt/gx10_ext1/models/huggingface_cache"
 models_extssd: "/mnt/gx10_ext1/models"
 
+s3_endpoint_ip: "{{ pc_ip }}"
+s3_bucket_name: "my-rag-bucket"
+
+

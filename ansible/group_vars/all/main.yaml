@@ -1,0 +1,19 @@
+---
+# Umschaltbare Auswahl, welche lokale Maschine aus der inventory.ini den zentralen Steuerungs-PC repräsentiert
+# Mögliche Werte: 'ryzon9', 'acer'
+active_pc_host: "ryzon9"
+
+# Dynamische Ermittlung der PC IP aus dem Inventory (greift auf ansible_host oder den Hostnamen zurück)
+pc_ip: "{{ hostvars[active_pc_host]['ansible_host'] | default(active_pc_host) }}"
+
+# GX10 Host IP direkt aus den Inventory-Variablen von gx10_host beziehen
+gx10_ip: "{{ hostvars['gx10']['ansible_host'] }}"
+
+# Mapping der Service-IPs auf die Basis-IP-Variablen (100.117.200.75 -> gx10_ip, 100.67.8.64 -> pc_ip)
+vllm_ip: "{{ gx10_ip }}"
+docling_ip: "{{ gx10_ip }}"
+flux_ip: "{{ gx10_ip }}"
+infinity_ip: "{{ gx10_ip }}"
+
+rag_pipeline_service_ip: "{{ pc_ip }}"
+qdrant_ip: "{{ pc_ip }}"
