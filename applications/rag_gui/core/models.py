@@ -92,6 +92,7 @@ class ChatSettings(BaseModel):
     max_tokens: int = 1024
     temperature: float = 0.2
     generate: bool = True
+    no_think: bool = True
     display_chunks: bool = False
 
 class ParsedContext(BaseModel):

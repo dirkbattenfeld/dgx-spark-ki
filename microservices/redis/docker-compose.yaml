@@ -7,9 +7,7 @@ services:
       - ../../.env
     command: redis-server --appendonly yes --protected-mode no
     ports:
-      # Redis lauscht NUR auf dem sicheren Tailscale-Interface.
-      # - "100.67.8.64:6379:6379"
-      - "${REDIS_HOST}:${REDIS_PORT}:${REDIS_PORT}"
+      - "${REDIS_PORT}:${REDIS_PORT}"
     volumes:
       - redis_data:/data
     deploy:

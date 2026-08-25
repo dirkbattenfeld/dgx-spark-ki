@@ -21,6 +21,7 @@ class TemplateManager:
             score_threshold=float(dict_settings.get("score_threshold", 0.5)),
             top_n=int(dict_settings.get("top_n", 5)),
             max_tokens=int(dict_settings.get("max_tokens", 1024)),
+            no_think=bool(dict_settings.get("no_think", False)),
             temperature=float(dict_settings.get("temperature", 0.2))
         )
 

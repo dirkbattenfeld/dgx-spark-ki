@@ -1,5 +1,6 @@
 # applications/rag_gui/chainlit/ui.py
 import uuid
+import re
 import chainlit as cl
 from rag_gui.chainlit.config_chainlit import active_presenter
 from rag_gui.core.config_core import core_orchestrator
@@ -98,6 +99,11 @@ async def start():
             step=256,
         ),
         Switch(
+            id="no_think",
+            label="Thinking Modus des LLM abschalten",
+            initial=True,
+        ),
+        Switch(
             id="display_chunks",
             label="📄 Gefundene Dokumente anzeigen",
             initial=False,
@@ -150,7 +156,11 @@ async def main(message: cl.Message):
             return
 
         # 1. Hauptantwort ausgeben
-        await cl.Message(content=result["answer"]).send()
+        # think Block entfernen
+        cleaned_text = re.sub(
+        r"\s*<think>.*?</think>\s*", "", result["answer"], flags=re.DOTALL
+    )
+        await cl.Message(content=cleaned_text).send()
         
         # 2. Chunks verarbeiten
         chunks = result.get("chunks", [])

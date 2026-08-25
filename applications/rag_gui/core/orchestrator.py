@@ -52,14 +52,13 @@ class Orchestrator:
         api_payload = final_settings.model_dump(
             exclude={"display_chunks"} 
         )
-        
+         
         if mode == "rag":
             response = await self.rag_request_client.call_async(
                 endpoint_name="rag_request",
                 pipeline_id="rag_request",
                 prompt_query=prompt_query,
                 prompt_llm=prompt_llm,
-                no_think=True,
                 **api_payload    
             )
             

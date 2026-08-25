@@ -15,7 +15,7 @@ help: ## Zeigt diese Hilfe an
 	@echo "Beispiel: make -j up-acer gx10 MODE=request"
 
 # RAG Stack auf aktivem PC (s. active_pc_host in main.yaml) starten
-up: ## RAG Stack auf Ryzon9 starten (ohne GUI)
+up: ## RAG Stack auf aktivem PC starten (automatischer GUI Start in local_machines.yaml konfigurierbar)
 	ansible-playbook -i ansible/inventory.ini ansible/deploy_pc.yaml
 
 down: ## RAG Stack auf aktivem PC stoppen
