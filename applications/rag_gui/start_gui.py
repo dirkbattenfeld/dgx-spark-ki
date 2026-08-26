@@ -2,9 +2,23 @@
 import subprocess
 import sys
 import os
+import secrets
+
+def ensure_chainlit_secret():
+    # secret in ansible secrets verschieben
+    """
+    Stellt sicher, dass CHAINLIT_AUTH_SECRET gesetzt ist.
+    Chainlit benötigt dieses Secret zwingend, um das Password-Auth-Callback 
+    und die Login-Maske zu aktivieren.
+    """
+    if not os.environ.get("CHAINLIT_AUTH_SECRET"):
+        generated_secret = secrets.token_hex(32)
+        os.environ["CHAINLIT_AUTH_SECRET"] = generated_secret
+        print(f"🔑 Auth Secret generiert und gesetzt: CHAINLIT_AUTH_SECRET={generated_secret[:8]}...")
 
 def run():
     print("🚀 Starte RAG Full Stack (Chainlit + NiceGUI)...")
+    ensure_chainlit_secret()
     
     # 1. Starte NiceGUI als Hintergrundprozess
     nicegui_process = subprocess.Popen(

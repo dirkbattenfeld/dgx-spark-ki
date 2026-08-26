@@ -1,11 +1,26 @@
 # applications/rag_gui/chainlit/ui.py
-import uuid
 import re
+import os
+import uuid
+import traceback
 import chainlit as cl
+from chainlit.input_widget import Select, Slider, Switch
 from rag_gui.chainlit.config_chainlit import active_presenter
 from rag_gui.core.config_core import core_orchestrator
-from chainlit.input_widget import Select, Slider, Switch
-import traceback
+
+
+# -------------------------------------------------------------------
+# Authentifizierung über Chainlit Auth Callback
+# -------------------------------------------------------------------
+@cl.password_auth_callback
+def auth_callback(username, password):
+    """
+    Zentraler Login-Bildschirm: Nimmt jeden eingegebenen Usernamen 
+    als UserID entgegen. Das Passwort kann beliebig sein.
+    """
+    if username and username.strip():
+        return cl.User(identifier=username.strip(), metadata={"role": "user"})
+    return None
 
 
 @cl.on_chat_start
@@ -16,28 +31,26 @@ async def start():
     except Exception as e:
         print(f"⚠️ Chainlit konnte keine Verbindung zu Redis aufbauen: {e}")
 
-    # User ID abfragen
-    res = await cl.AskUserMessage(
-        content="Willkommen! Bitte geben Sie Ihre UserID ein, um zu beginnen.", 
-        timeout=240
-    ).send()
-    
-    if res is None or "output" not in res:
-        user_id = "DefaultUser"  # Fallback, damit das System nicht crasht
-    else:
-        user_id = res["output"].strip()
-    
+    # User-ID direkt aus dem authentifizierten cl.User-Objekt lesen!
+    user = cl.user_session.get("user")
+    user_id = user.identifier if user else "DefaultUser"
+
+    # In Session sichern
+    cl.user_session.set("user_id", user_id)
+
+    # Für den aktuellen Thread eine Session-ID generieren
     session_id = str(uuid.uuid4())
+    cl.user_session.set("id", session_id)
     
     nicegui_url = f"http://localhost:8501/?user_id={user_id}"
     await cl.Message(
-        content=f"Hallo {user_id}! Dein RAG Cockpit findest du hier: [RAG Cockpit öffnen]({nicegui_url})"
+        content=f"Hallo **{user_id}**! Dein RAG Cockpit findest du hier: [RAG Cockpit öffnen]({nicegui_url})"
     ).send()
-    
-    await active_presenter.orchestrator.set_user_active_session(user_id, session_id)
-    cl.user_session.set("user_id", user_id)
-    cl.user_session.set("id", session_id)   
-   
+
+    await active_presenter.orchestrator.set_user_active_session(
+        user_id, session_id
+    )
+
     # Qdrant Collections holen
     available_collections = await active_presenter.get_collections()
     
@@ -45,9 +58,16 @@ async def start():
         Select(
             id="compute_mode",
             label="🧠 Betriebsmodus",
-            values=["RAG Retrieval (neue Chunks suchen)", "LLM (auf selektierten chunks)", "Plain LLM"],
+            values=[
+                "RAG Retrieval (neue Chunks suchen)",
+                "LLM (auf selektierten chunks)",
+                "Plain LLM",
+            ],
             initial_index=0,
-            description="Bestimmt, ob das Modell auf den im Warenkorb ausgewählten Chunks rechnet oder neu sucht."
+            description=(
+                "Bestimmt, ob das Modell auf den im Warenkorb ausgewählten"
+                " Chunks rechnet oder neu sucht."
+            ),
         ),
         # Qdrant
         Select(
@@ -135,7 +155,8 @@ async def setup_agent(settings):
 async def main(message: cl.Message):
     try:
         session_id = cl.user_session.get("id")
-        user_id = cl.user_session.get("user_id")
+        user = cl.user_session.get("user")
+        user_id = user.identifier if user else cl.user_session.get("user_id")
         current_mode = cl.user_session.get("compute_mode") or "Plain LLM"
         text = message.content.strip()
 
@@ -158,8 +179,8 @@ async def main(message: cl.Message):
         # 1. Hauptantwort ausgeben
         # think Block entfernen
         cleaned_text = re.sub(
-        r"\s*<think>.*?</think>\s*", "", result["answer"], flags=re.DOTALL
-    )
+            r"\s*<think>.*?</think>\s*", "", result["answer"], flags=re.DOTALL
+        )
         await cl.Message(content=cleaned_text).send()
         
         # 2. Chunks verarbeiten
@@ -167,14 +188,13 @@ async def main(message: cl.Message):
         basket = await active_presenter.get_basket(user_id)
         
         # 3. Chunks ausgeben wenn in chat settings gewünscht
-        chat_settings = cl.user_session.get("chat_settings") or {}
-        show_chunks_in_ui = chat_settings.get("display_chunks", False)
+        pipeline_settings = cl.user_session.get("pipeline_settings") or {}
+        show_chunks_in_ui = pipeline_settings.get("display_chunks", False)
         
         if chunks and show_chunks_in_ui:
             await cl.Message(content="--- \n### 📄 Gefundene Quell-Chunks (Nachweis & Relevanz):").send()
             
             for idx, chunk in enumerate(chunks):  
-                # ÄNDERUNG: Direkter Zugriff auf Pydantic-Attribute statt Dictionary-Lookups!
                 chunk_id = chunk.id or f"chunk_{idx}"
                 
                 in_basket = chunk_id in basket
@@ -207,10 +227,8 @@ async def main(message: cl.Message):
                     elements=[text_element],
                     actions=actions
                 ).send()
-                
 
     except Exception as e:
-        # Fehler wird abgefangen und formatiert ausgegeben anstatt lautlos zu sterben
         error_trace = traceback.format_exc()
         await cl.Message(
             content=(
@@ -243,3 +261,4 @@ async def on_action(action: cl.Action):
         return action.to_dict()
     except Exception as e:
         await cl.Message(content=f"❌ **Korb-Fehler:** {str(e)}").send()
+
