@@ -57,6 +57,9 @@ class NiceGUICockpitPresenter:
         active_session = await self.orchestrator.get_active_session(self.user_id) or "Keine aktive Sitzung"
         basket_ids = await self.orchestrator.get_basket_ids(self.user_id)
         
+        # Basket-Statistiken abrufen
+        basket_stats = await self.orchestrator.get_basket_stats(self.user_id)
+         
         # Holt die saubere Historie (bereits mit echten RetrievalChunk-Objekten)
         raw_history = await self.orchestrator.get_session_history_with_chunks(self.user_id)
         
@@ -85,5 +88,6 @@ class NiceGUICockpitPresenter:
         return {
             "active_session": active_session,
             "basket_ids": basket_ids,
+            "basket_stats": basket_stats,
             "history_turns": mapped_history
         }

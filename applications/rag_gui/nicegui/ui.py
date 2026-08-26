@@ -25,7 +25,10 @@ def index_page(request: Request):
     
     with ui.card().classes("w-full p-4 mb-4"):
         with ui.row().classes("w-full justify-between items-center mb-2"):
-            ui.label("📥 Aktueller Dokumentenkorb").classes("text-lg font-semibold text-slate-700")
+            with ui.row().classes("items-center gap-2"):
+                ui.label("📥 Aktueller Dokumentenkorb").classes("text-lg font-semibold text-slate-700")
+                # NEU: Dynamische Badges für Zeichen & geschätzte Tokens
+                basket_stats_label = ui.row().classes("items-center gap-2")
             clear_basket_btn = ui.button("Korb leeren", icon="delete_sweep").props("flat color=red density=compact")
         basket_container = ui.column().classes("w-full gap-2")
 
@@ -47,14 +50,29 @@ def index_page(request: Request):
             
             # Basket rendern
             basket_container.clear()
+            basket_stats_label.clear()
+
+            stats = view_state.get("basket_stats", {"total_chars": 0, "estimated_tokens": 0})
+            basket_ids = view_state.get("basket_ids", [])
+
+            with basket_stats_label:
+                if basket_ids:
+                    # 1. Badge für Gesamtzahl der Zeichen (Slate-Outline)
+                    ui.badge(f"{stats['total_chars']:,} Zeichen", color="blue").props("outline dense")
+                    # 2. Badge für geschätzte Tokens (Indigo-Füllung)
+                    ui.badge(f"~{stats['estimated_tokens']:,} Tokens", color="indigo").props("dense")
+
             with basket_container:
-                if not view_state["basket_ids"]:
+                if not basket_ids:
                     ui.label("Der Wissenskorb ist momentan leer.").classes("text-gray-400 italic text-sm")
                 else:
-                    for b_id in view_state["basket_ids"]:
+                    for b_id in basket_ids:
                         with ui.row().classes("w-full items-center justify-between bg-gray-50 p-2 rounded shadow-sm"):
                             ui.label(f"📦 Chunk: {b_id[:12]}...").classes("font-mono text-xs")
-                            ui.button(icon="delete", on_click=lambda cid=b_id: asyncio.create_task(presenter.toggle_chunk(cid))).props("flat color=red density=compact")
+                            ui.button(
+                                icon="delete", 
+                                on_click=lambda cid=b_id: asyncio.create_task(presenter.toggle_chunk(cid))
+                            ).props("flat color=red density=compact")
 
             # Historie rendern
             history_container.clear()

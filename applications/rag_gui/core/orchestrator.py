@@ -73,7 +73,7 @@ class Orchestrator:
                 for idx, chunk in enumerate(raw_chunks)
             ]
             
-        elif mode =="basket":
+        elif mode =="basket":           
             #user-query anreichern um die chunks aus dem Basket
             final_prompt = await self.enrich_prompt_with_basket(prompt_llm, user_id)
             
@@ -155,12 +155,19 @@ class Orchestrator:
     async def toggle_chunk_in_basket(self, user_id: str, chunk_id: str) -> bool:
         is_in_basket = await self.state_db.toggle_basket(user_id, chunk_id)
         
+        # Neu: Stats gleich berechnen und mitfeuern
+        stats = await self.get_basket_stats(user_id)
+        
         await self.event_bus.publish(
             f"user:{user_id}:basket:updated", 
-            {"chunk_id": chunk_id, "is_in_basket": is_in_basket}
+            {
+                "chunk_id": chunk_id, 
+                "is_in_basket": is_in_basket,
+                "stats": stats  
+            }
         )
         return is_in_basket
-    
+            
     
     async def clear_whole_basket(self, user_id: str) -> None:
         """
@@ -178,6 +185,35 @@ class Orchestrator:
         print(f"🗑️ Basket für User {user_id} vollständig geleert.")
         
 
+    async def get_basket_stats(self, user_id: str) -> Dict[str, int]:
+        """
+        Berechnet die Gesamtlänge der Chunks im Basket in Zeichen 
+        sowie eine geschätzte Token-Anzahl (~4 Zeichen pro Token).
+        """
+        basket_texts = await self.state_db.get_basket_chunk_texts(user_id)
+
+        if not basket_texts:
+            return {"total_chars": 0, "estimated_tokens": 0}
+
+        total_chars = 0
+        for item in basket_texts:
+            if isinstance(item, str):
+                total_chars += len(item)
+            elif isinstance(item, dict):
+                # Fallback falls die DB Dicts/JSON liefert
+                text = item.get("text") or item.get("content") or str(item)
+                total_chars += len(text)
+            else:
+                total_chars += len(str(item))
+        
+        estimated_tokens = (total_chars + 3) // 4 if total_chars > 0 else 0
+
+        return {
+            "total_chars": total_chars,
+            "estimated_tokens": estimated_tokens
+        }
+    
+    
     async def set_user_active_session(self, user_id: str, session_id: str):
         await self.state_db.set_active_session(user_id, session_id)
         await self.event_bus.publish(
@@ -231,6 +267,7 @@ class Orchestrator:
         """
         # 1. Texte direkt und performant per SQL holen
         basket_texts = await self.state_db.get_basket_chunk_texts(user_id)
+        
         if not basket_texts:
             return user_query  # Korb leer -> Query bleibt unverändert
 

@@ -190,47 +190,45 @@ class SQLiteRepository(StateRepository):
             conn.commit()
             print(f"🗄️ DB: Basket für User '{user_id}' in Tabelle 'basket' geleert.")
     
-    
+        
     async def get_basket_chunk_texts(self, user_id: str) -> List[str]:
         """
-        Holt direkt die Texte aller im Basket liegenden Chunks per SQL-Join.
-        Nutzt MAX(tc.rowid) bzw. eine Subquery, um den aktuellsten Textstand zu sichern,
-        falls ein Chunk über mehrere Turns hinweg gefunden wurde.
-        """
-        with sqlite3.connect(self.db_path) as conn:
-            # Subquery stellt sicher, dass wir bei Duplikaten pro chunk_id den Turn mit der höchsten ID erwischen
-            cursor = conn.execute("""
-                SELECT tc.chunk_text 
-                FROM basket b
-                INNER JOIN turn_chunks tc ON b.chunk_id = tc.chunk_id
-                WHERE b.user_id = ?
-                  AND tc.turn_id = (
-                      SELECT MAX(inner_tc.turn_id) 
-                      FROM turn_chunks inner_tc 
-                      WHERE inner_tc.chunk_id = tc.chunk_id
-                  )
-                GROUP BY tc.chunk_id
-            """, (user_id,))
-            
-            return [row[0] for row in cursor.fetchall() if row[0]]
-                
-                
-    async def get_basket_chunk_texts_alt(self, user_id: str) -> List[str]:
-        """
-        Holt direkt die Texte aller im Basket liegenden Chunks per SQL-Join.
-        Nutzt MAX(turn_id) im Group By, falls ein Chunk in mehreren Turns vorkommt,
-        um den aktuellsten Textstand zu sichern.
+        Holt direkt die Parent-Texte aller im Basket liegenden Chunks 
+        aus dem raw_json (mit Fallback auf den Child-Text).
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("""
-                SELECT tc.chunk_text 
+                SELECT tc.chunk_text, tc.raw_json 
                 FROM basket b
                 INNER JOIN turn_chunks tc ON b.chunk_id = tc.chunk_id
                 WHERE b.user_id = ?
+                AND tc.turn_id = (
+                    SELECT MAX(inner_tc.turn_id) 
+                    FROM turn_chunks inner_tc 
+                    WHERE inner_tc.chunk_id = tc.chunk_id
+                )
                 GROUP BY tc.chunk_id
             """, (user_id,))
             
-            # Gibt eine flache Liste der Texte zurück
-            return [row[0] for row in cursor.fetchall() if row[0]]
-
+            texts = []
+            for chunk_text, raw_json_str in cursor.fetchall():
+                text_to_use = chunk_text  # Fallback auf Child-Text
+                
+                if raw_json_str:
+                    try:
+                        data = json.loads(raw_json_str)
+                        # Versuche den Parent-Text aus dem gespeicherten RetrievalChunk zu holen
+                        parent_text = data.get("parent_text")
+                        if parent_text:
+                            text_to_use = parent_text
+                    except Exception:
+                        pass  # Im Notfall beim Fallback bleiben
+                
+                if text_to_use:
+                    texts.append(text_to_use)
+                    
+            return texts
+                
+                
+ 
 
