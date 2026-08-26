@@ -60,12 +60,12 @@ async def start():
             label="🧠 Betriebsmodus",
             values=[
                 "RAG Retrieval (neue Chunks suchen)",
-                "LLM (auf selektierten chunks)",
-                "Plain LLM",
+                "LLM auf Chunks im Dokumentenkorb",
+                "LLM (ohne Kontext)",
             ],
             initial_index=0,
             description=(
-                "Bestimmt, ob das Modell auf den im Warenkorb ausgewählten"
+                "Bestimmt, ob das Modell auf den im Dokumentenkorbkorb ausgewählten"
                 " Chunks rechnet oder neu sucht."
             ),
         ),

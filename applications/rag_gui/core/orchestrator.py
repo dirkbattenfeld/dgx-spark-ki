@@ -1,5 +1,6 @@
 # apps/rag_chainlit/orchestrator.py
 import uuid
+import textwrap
 from typing import List, Dict, Any, Optional, Callable, Awaitable
 from rag_gui.core.ports import EventBusPort  
 from rag_gui.core.models import RetrievalChunk
@@ -30,78 +31,125 @@ class Orchestrator:
         settings: Optional[Dict[str, Any]] = None
     ) -> dict:
         
-        settings_dict = settings or {}
-        
-        # Parsing & Template Erkennung
-        parsed_ctx = self.parser.parse(user_query)
-        # Settings initialisieren (aus Verzeichnis oder Übergabe)
-        chat_settings = self.template_manager.get_settings(parsed_ctx.active_template, settings_dict)
-        # Verlauf holen (Dummy-Übergabe für späteren Rewriter)
-        chat_history = [] # Hier später: await self.state_db.get_history(session_id)
-        parsed_ctx = await self.rewriter.rewrite(parsed_ctx, chat_history, mode=mode)
-        # Prompt Mapping für Suche und LLM-Aufruf
-        prompt_query, prompt_llm, final_settings = self.builder.build(parsed_ctx, chat_settings, mode=mode)
-        
-        
-        # Für maximale Entkopplung: Ermittle alle erlaubten Argumente der API-Methode
-        # api_method = self.rag_request_client.call_async
-        # allowed_args = inspect.signature(api_method).parameters
-        # full_payload = final_settings.model_dump()
-        # api_payload = {k: v for k, v in full_payload.items() if k in allowed_args}
-
-        api_payload = final_settings.model_dump(
-            exclude={"display_chunks"} 
-        )
-         
-        if mode == "rag":
-            response = await self.rag_request_client.call_async(
-                endpoint_name="rag_request",
-                pipeline_id="rag_request",
-                prompt_query=prompt_query,
-                prompt_llm=prompt_llm,
-                **api_payload    
-            )
+        # Anfrage an Hilfefunktion abfangen
+        if user_query.strip().lower() in ["/help", "/hilfe"]:
+            answer = textwrap.dedent("""
+                📖 **System-Hilfe & Verfügbare Tags**
+                            
+                **Modus "RAG Retrieval":**
+                <search>Suchanfrage für die Vektordatenbank bitte mit Suchbegriffen ohne Sonderzeichen formulieren.</search>
+                
+                <instruction>Auftrag für das Large Language Model (LLM) als qualifizierten Prompt formulieren.</instruction>
+                
+                Das LLM antwortet ausschließlich auf Basis der gefundenen Chunks, die im RAG Cockpit inspiziert werden können.
+                Mit dem Warenkorb Symbol kann ein Chunk im Dokumentenkorb gespeichert werden.
+                            
+                **Modus "LLM auf Chunks im Dokumentenkorb":**
+                Das LLM antwortet ausschließlich auf Basis der Chunks im Dokumentenkorb und nutzt kein Wissen aus seinen Trainingsdaten.
+                            
+                **Modus "LLM (ohne Kontext)":**
+                Das LLM antwortet ausschließlich auf Basis seiner Trainingsdaten.
+                            
+                /help oder /hilfe: Diese Hilfeseite.
+            """)
             
-            raw_chunks = response.get("chunks", [])
-
-            default_answer = "Dokumentensuche ohne Generierung einer Antwort."
-            answer = response.get("answer", default_answer).strip() if final_settings.generate else default_answer
+            answer2 = """📖 System-Hilfe & Verfügbare Tags
             
-            # chunks parsen:
-            parsed_chunks = [
-                RetrievalChunk.from_enriched_hit(chunk, idx) 
-                for idx, chunk in enumerate(raw_chunks)
-            ]
+            Modus "RAG Retrieval":
+            <search>Suchanfrage für die Vektordatenbank bitte mit Suchbegriffen ohne Sonderzeichen formulieren.</search>
+            <instruction>Auftrag für das Large Language Model (LLM) als qualifizierten Prompt formulieren.</instruction>"
+            Das LLM antwortet ausschließlich auf Basis der gefundenen Chunks, die im RAG Cockpit inspiziert werden können.
+            Mit dem Warenkorb Symbol kann ein Chunk im Dokumentenkorb gespeichert werden.
             
-        elif mode =="basket":           
-            #user-query anreichern um die chunks aus dem Basket
-            final_prompt = await self.enrich_prompt_with_basket(prompt_llm, user_id)
+            Modus "LLM auf Chunks im Dokumentenkorb":
+            Das LLM antwortet ausschließlich auf Basis der Chunks im Dokumentenkorb und nutzt kein Wissen aus seinen Trainingsdaten.
             
-            response = await self.vllm_client.chat_async(
-                prompt=final_prompt,
-                system_prompt=("Du bist ein wissenschaftlicher Analyst. Beantworte Fragen ausschließlich auf Basis des bereitgestellten Kontexts." 
-                               "Wenn im Kontext keine Informationen zur Frage enthalten sind, dann antworte mit 'KEINE INFORMATIONEN IM KONTEXT!'." 
-                               "Erstelle am Ende Deiner Antwort eine Bibliographie und zitiere in Deiner Antwort sorgfältig! Antworte in Markdown."
-                               "If you use mathematical formulas, always wrap them in $$ with a blank line before and after the formula block."),
-                max_tokens=final_settings.max_tokens,
-                temperature=final_settings.temperature,
-                no_think=final_settings.no_think   
-            )
-            answer = response.get("text", "").strip()
-            parsed_chunks = []
+            Modus "LLM (ohne Kontext):
+            Das LLM antwortet ausschließlich auf Basis seiner Trainingsdaten.
+            
+            /help oder /hilfe: Diese Hilfeseite.
+            """
+            prompt_query = "N/A (Help Command)"
+            prompt_llm = "N/A (Help Command)"
             raw_chunks = []
-        
-        else:
-            response = await self.vllm_client.chat_async(
-                prompt=prompt_llm,
-                system_prompt=("Du bist ein wissenschaftlicher Analyst. Antworte in Markdown. If you use mathematical formulas, always wrap them in $$ with a blank line before and after the formula block."),
-                max_tokens=final_settings.max_tokens,
-                temperature=final_settings.temperature,
-                no_think=final_settings.no_think   
+            
+            # Wir brauchen noch dummy chat_settings für den DB-Eintrag weiter unten
+            settings_dict = settings or {}
+            final_settings = self.template_manager.get_settings("default", settings_dict)
+
+        else:       
+            settings_dict = settings or {}
+            
+            # Parsing & Template Erkennung
+            parsed_ctx = self.parser.parse(user_query)
+            # Settings initialisieren (aus Verzeichnis oder Übergabe)
+            chat_settings = self.template_manager.get_settings(parsed_ctx.active_template, settings_dict)
+            # Verlauf holen (Dummy-Übergabe für späteren Rewriter)
+            chat_history = [] # Hier später: await self.state_db.get_history(session_id)
+            parsed_ctx = await self.rewriter.rewrite(parsed_ctx, chat_history, mode=mode)
+            # Prompt Mapping für Suche und LLM-Aufruf
+            prompt_query, prompt_llm, final_settings = self.builder.build(parsed_ctx, chat_settings, mode=mode)
+            
+            
+            # Für maximale Entkopplung: Ermittle alle erlaubten Argumente der API-Methode
+            # api_method = self.rag_request_client.call_async
+            # allowed_args = inspect.signature(api_method).parameters
+            # full_payload = final_settings.model_dump()
+            # api_payload = {k: v for k, v in full_payload.items() if k in allowed_args}
+
+            api_payload = final_settings.model_dump(
+                exclude={"display_chunks"} 
             )
-            answer = response.get("text", "").strip()
-            parsed_chunks = [] 
-            raw_chunks = []
+            
+            if mode == "rag":
+                response = await self.rag_request_client.call_async(
+                    endpoint_name="rag_request",
+                    pipeline_id="rag_request",
+                    prompt_query=prompt_query,
+                    prompt_llm=prompt_llm,
+                    **api_payload    
+                )
+                
+                raw_chunks = response.get("chunks", [])
+
+                default_answer = "Dokumentensuche ohne Generierung einer Antwort."
+                answer = response.get("answer", default_answer).strip() if final_settings.generate else default_answer
+                
+                # chunks parsen:
+                parsed_chunks = [
+                    RetrievalChunk.from_enriched_hit(chunk, idx) 
+                    for idx, chunk in enumerate(raw_chunks)
+                ]
+                
+            elif mode =="basket":           
+                #user-query anreichern um die chunks aus dem Basket
+                final_prompt = await self.enrich_prompt_with_basket(prompt_llm, user_id)
+                
+                response = await self.vllm_client.chat_async(
+                    prompt=final_prompt,
+                    system_prompt=("Du bist ein wissenschaftlicher Analyst. Beantworte Fragen ausschließlich auf Basis des bereitgestellten Kontexts." 
+                                "Wenn im Kontext keine Informationen zur Frage enthalten sind, dann antworte mit 'KEINE INFORMATIONEN IM KONTEXT!'." 
+                                "Erstelle am Ende Deiner Antwort eine Bibliographie und zitiere in Deiner Antwort sorgfältig! Antworte in Markdown."
+                                "If you use mathematical formulas, always wrap them in $$ with a blank line before and after the formula block."),
+                    max_tokens=final_settings.max_tokens,
+                    temperature=final_settings.temperature,
+                    no_think=final_settings.no_think   
+                )
+                answer = response.get("text", "").strip()
+                parsed_chunks = []
+                raw_chunks = []
+            
+            else:
+                response = await self.vllm_client.chat_async(
+                    prompt=prompt_llm,
+                    system_prompt=("Du bist ein wissenschaftlicher Analyst. Antworte in Markdown. If you use mathematical formulas, always wrap them in $$ with a blank line before and after the formula block."),
+                    max_tokens=final_settings.max_tokens,
+                    temperature=final_settings.temperature,
+                    no_think=final_settings.no_think   
+                )
+                answer = response.get("text", "").strip()
+                parsed_chunks = [] 
+                raw_chunks = []
              
         parsed_chunks = self._parse_chunks_to_pydantic(raw_chunks)
              
