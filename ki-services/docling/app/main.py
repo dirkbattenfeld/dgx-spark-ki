@@ -146,6 +146,7 @@ async def extract_document(request: ExtractRequest):
     Verarbeitet s3:// oder lokale Pfade vollkommen generisch.
     Nutzt den über lifespan bereitgestellten StorageClient.
     """
+    
     storage = state.storage
     
     try:

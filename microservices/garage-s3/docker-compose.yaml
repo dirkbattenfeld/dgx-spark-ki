@@ -7,7 +7,7 @@ services:
       - ../../.env
     ports:
       - "3902:3902"  # Zugriff für Web-Server
-      - "4080:4080"  # Schicke Web-UI zum Anschauen im Browser
+      - "4080:4080"  # Web-UI
       - "3903:3903"  # Admin API
       - "9000:9000"  # S3 API Endpunkt
     environment:

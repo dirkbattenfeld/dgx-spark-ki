@@ -57,10 +57,10 @@ class RagIngestionSingleWrapper(BasePipelineWrapper):
     ) -> dict[str, Any]:
         
         # DEBUG
-        from libs.observability.helper import format_dict_tree
-        print("\nDEBUG (process_results / raw_results):","="*60)
-        print(format_dict_tree(raw_results))
-        print("\n", "="*60)
+        #from libs.observability.helper import format_dict_tree
+        #print("\nDEBUG (process_results / raw_results):","="*60)
+        #print(format_dict_tree(raw_results))
+        #print("\n", "="*60)
         # DEBUG
         
         # Relevante Step-Pfade für jede Datei
@@ -143,10 +143,10 @@ class RagIngestionStreamingWrapper(BasePipelineWrapper):
         """
         
         # DEBUG
-        from libs.observability.helper import format_dict_tree
-        print("\nDEBUG (process_results / raw_results):","="*60)
-        print(format_dict_tree(raw_results))
-        print("\n", "="*60)
+        #from libs.observability.helper import format_dict_tree
+        #print("\nDEBUG (process_results / raw_results):","="*60)
+        #print(format_dict_tree(raw_results))
+        #print("\n", "="*60)
         # DEBUG
 
         total_files = len(raw_results)

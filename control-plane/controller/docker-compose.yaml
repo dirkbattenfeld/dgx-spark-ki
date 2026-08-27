@@ -1,8 +1,8 @@
 services:
   controller:
-    build:
-      context: ../..
-      dockerfile: control-plane/controller/Dockerfile
+#    build:
+#      context: ../..
+#      dockerfile: control-plane/controller/Dockerfile
     env_file:
       - ../../.env
     image: controller-base:v1.2

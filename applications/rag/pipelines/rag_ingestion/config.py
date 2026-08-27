@@ -18,7 +18,7 @@ class IngestionEnvConfig(BaseModel):
     config_path: Optional[str] = None
     max_concurrent_documents: int = 5
     s3_bucket: str = "office-test"
-    s3_glob_pattern: str = "*.pptx"   #"*.{pdf,docx,xlsx,pptx}"
+    s3_glob_pattern: str = "**/*.pdf,**/*.docx,**/*.xlsx,**/*.pptx"
     default_vllm_system_prompt: str = "Du bist ein präziser Dokumentanalyst."  
 
 class PipelineStepConfigs(BaseModel):

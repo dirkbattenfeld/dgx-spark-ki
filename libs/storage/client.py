@@ -1,7 +1,8 @@
 import os
 import fsspec
 from pathlib import Path
-
+import re
+        
 class StorageClient:
     def __init__(self):
     # Wir laden die Konfiguration
@@ -82,8 +83,46 @@ class StorageClient:
         fs = self._get_fs(path)
         if fs.exists(path):
             fs.rm(path)
-
+            
     def list_files(self, bucket: str, glob_pattern: str = "*"):
+        """Gibt eine Liste von vollqualifizierten URLs (s3:// oder file://) zurück."""
+        base_path = self._get_full_path(bucket)
+        fs = self._get_fs(base_path)
+        
+        protocol = fsspec.utils.get_protocol(base_path)
+        
+        # Hilfsfunktion, die z.B. '.pdf' in '.[pP][dD][fF]' umwandelt
+        def make_case_insensitive_ext(pat: str) -> str:
+            # Sucht nach Endungen am Ende des Musters (z.B. .pdf, .docx)
+            match = re.search(r'\.([a-zA-Z0-9]+)$', pat)
+            if match:
+                ext = match.group(1)
+                # Jeden Buchstaben der Endung in [gG] umwandeln
+                ci_ext = "".join([f"[{char.lower()}{char.upper()}]" for char in ext])
+                return pat[:match.start()] + "." + ci_ext
+            return pat
+
+        # Muster aufteilen und case-insensitiv machen
+        patterns = [make_case_insensitive_ext(p.strip()) for p in glob_pattern.split(",")]
+        raw_files = []
+        
+        for pat in patterns:
+            pattern_path = f"{base_path}/{pat}" if not pat.startswith(base_path) else pat
+            raw_files.extend(fs.glob(pattern_path))
+            
+        # Duplikate entfernen
+        files = list(set(raw_files))
+        
+        clean_files = []
+        for f in files:
+            clean_path = f.replace(f"{protocol}://", "", 1)
+            if protocol == "file" and not clean_path.startswith("/"):
+                clean_path = "/" + clean_path
+            clean_files.append(f"{protocol}://{clean_path}")
+            
+        return clean_files
+
+    def list_files_alt(self, bucket: str, glob_pattern: str = "*"):
         """Gibt eine Liste von vollqualifizierten URLs (s3:// oder file://) zurück."""
         base_path = self._get_full_path(bucket)
         fs = self._get_fs(base_path)
