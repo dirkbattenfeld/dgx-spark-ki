@@ -167,7 +167,7 @@ async def main(message: cl.Message):
         # Modus-Weiche ausführen
         if "RAG Retrieval" in current_mode:
             result = await active_presenter.handle_rag_query(text, session_id, user_id)
-        elif "selektierten chunks" in current_mode:
+        elif "Dokumentenkorb" in current_mode:
             result = await active_presenter.handle_basket_compute(text, session_id, user_id)
         else: 
             result = await active_presenter.handle_plain_compute(text, session_id, user_id)
