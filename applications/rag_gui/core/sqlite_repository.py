@@ -194,7 +194,7 @@ class SQLiteRepository(StateRepository):
     async def get_basket_chunk_texts(self, user_id: str) -> List[str]:
         """
         Holt direkt die Parent-Texte aller im Basket liegenden Chunks 
-        aus dem raw_json (mit Fallback auf den Child-Text).
+        aus dem raw_json (mit Fallback auf den Child-Text), ohne Dubletten.
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("""
@@ -211,24 +211,23 @@ class SQLiteRepository(StateRepository):
             """, (user_id,))
             
             texts = []
+            seen = set()  # Zum Tracking bereits bekannter Texte
+            
             for chunk_text, raw_json_str in cursor.fetchall():
                 text_to_use = chunk_text  # Fallback auf Child-Text
                 
                 if raw_json_str:
                     try:
                         data = json.loads(raw_json_str)
-                        # Versuche den Parent-Text aus dem gespeicherten RetrievalChunk zu holen
                         parent_text = data.get("parent_text")
                         if parent_text:
                             text_to_use = parent_text
                     except Exception:
-                        pass  # Im Notfall beim Fallback bleiben
+                        pass  
                 
-                if text_to_use:
+                # Nur hinzufügen, wenn Text vorhanden ist und noch nicht in der Liste war
+                if text_to_use and text_to_use not in seen:
+                    seen.add(text_to_use)
                     texts.append(text_to_use)
                     
             return texts
-                
-                
- 
-
