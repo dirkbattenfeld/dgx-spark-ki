@@ -81,6 +81,17 @@ class StorageClient:
     def delete(self, bucket: str, filename: str = None):
         path = self._get_full_path(bucket, filename)
         fs = self._get_fs(path)
+        try:
+            fs.rm(path)
+            # S3FS-Cache für diesen Pfad invalidieren, damit er nicht im Speicher verbleibt
+            if hasattr(fs, "invalidate_cache"):
+                fs.invalidate_cache(path)
+        except Exception as e:
+            raise RuntimeError(f"Fehler beim Löschen von '{path}': {e}")
+    
+    def delete_alt(self, bucket: str, filename: str = None):
+        path = self._get_full_path(bucket, filename)
+        fs = self._get_fs(path)
         if fs.exists(path):
             fs.rm(path)
             
