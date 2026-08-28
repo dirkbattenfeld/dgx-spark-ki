@@ -111,9 +111,11 @@ class Orchestrator:
                 )
                 
                 raw_chunks = response.get("chunks", [])
-
+                
                 default_answer = "Dokumentensuche ohne Generierung einer Antwort."
-                answer = response.get("answer", default_answer).strip() if final_settings.generate else default_answer
+                raw_answer = response.get("answer")
+                resolved_answer = raw_answer if raw_answer is not None else default_answer
+                answer = resolved_answer.strip() if final_settings.generate else default_answer
                 
                 # chunks parsen:
                 parsed_chunks = [

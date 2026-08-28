@@ -31,8 +31,18 @@ async def generate_action(
     
     # Debug-Print um zu sehen, ob überhaupt Hits ankommen
     print(f" debug: generate_action empfing {len(input_data.hits)} Hits.")
-
-    for i, hit in enumerate(input_data.hits, 1):
+    
+    seen_texts = set()
+    unique_hits = []
+    for hit in input_data.hits:
+        text = hit.parent_text or hit.rerank_hit.original_hit.text
+        if text not in seen_texts:
+            seen_texts.add(text)
+            unique_hits.append(hit)
+    
+    print(f" debug: Nach Deduplizierung verbleiben {len(unique_hits)} eindeutige Hits.")
+    
+    for i, hit in enumerate(unique_hits, 1):
         # 1. Text-Extraktion: Priorität auf Parent-Text, Fallback auf Child-Text
         text = hit.parent_text or hit.rerank_hit.original_hit.text
         
