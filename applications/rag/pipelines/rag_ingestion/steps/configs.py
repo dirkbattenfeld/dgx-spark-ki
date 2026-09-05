@@ -38,5 +38,7 @@ class StoreConfig(BaseModel):
     parent_collection_name: str = ""
     vector_size: int = 1024
     distance: str = "Cosine"
+    batch_size_child: int = 400   # Größe der Batches zum Speichern der child-chunks sowie
+    batch_size_parent: int = 64   # ... der parent-chunks
     extras: Dict[str, Any] = Field(default_factory=dict)
     

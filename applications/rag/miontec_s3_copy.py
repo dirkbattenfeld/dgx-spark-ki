@@ -68,4 +68,4 @@ def upload_local_dir_to_s3(local_dir: str = "local_dir", bucket_name: str = "buc
 
 
 if __name__ == "__main__":
-    upload_local_dir_to_s3("projects/miontec/docs", "miontec")
+    upload_local_dir_to_s3("projects/miontec_310826/test", "miontec")

@@ -16,7 +16,7 @@ class IngestionEnvConfig(BaseModel):
     """Globale Infrastruktur- und Laufzeit-Einstellungen der Pipeline."""
     use_dispatcher: bool = True
     config_path: Optional[str] = None
-    max_concurrent_documents: int = 5
+    max_concurrent_documents: int = 6
     s3_bucket: str = "office-test"
     s3_glob_pattern: str = "**/*.pdf,**/*.docx,**/*.xlsx,**/*.pptx"
     default_vllm_system_prompt: str = "Du bist ein präziser Dokumentanalyst."  
@@ -28,16 +28,16 @@ class PipelineStepConfigs(BaseModel):
     )
     chunk: ChunkConfig = Field(
         default_factory=lambda: ChunkConfig(
-            child_max_tokens=512, 
-            max_child_chunks_per_parent=6, 
-            parent_overlap_chunks=1, 
+            child_max_tokens=128, 
+            max_child_chunks_per_parent=16, 
+            parent_overlap_chunks=0, 
             merge_peers=True
         )
     )
     contextualize: ContextualizeConfig = Field(
         default_factory=lambda: ContextualizeConfig(
             max_tokens=256, 
-            max_concurrent=32, 
+            max_concurrent=64, 
             temperature=0.1, 
             document_window_chars=40000, 
             no_think=True

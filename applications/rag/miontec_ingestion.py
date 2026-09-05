@@ -11,7 +11,7 @@ from libs.observability.helper import format_dict_tree
 logger = logging.getLogger("LocalTest")
 
 async def main(pipeline_id: str, payload: dict, overrides: dict):
-    logpath = "projects/miontec/log.json"
+    logpath = "projects/miontec_310826/test/log.json"
     
     # Observability konfigurieren
     obs_config = ObservabilityConfig(
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     PIPELINE_CONFIGS = {
         "rag_ingestion_streaming": {
             "payload": {"s3_bucket": "miontec"},
-            "overrides": {"StoreQdrant": {"collection_name": "test4"}}
+            "overrides": {"StoreQdrant": {"collection_name": "miontec"}}
         }
     }
 
