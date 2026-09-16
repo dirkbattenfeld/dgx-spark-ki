@@ -35,7 +35,7 @@ Before cloning the repository and executing the deployment, ensure that the foll
 The project provides a unified `Makefile` in the root directory to handle all deployment and remote orchestration tasks via Ansible.
 
 * **`make up gx10 MODE=request`**
-  provisions all needed microservices to run the RAG application on the PC and (remotely) on the DGX spark.
+  provisions all needed microservices on the PC and (remotely) on the DGX spark to run the RAG application.
 * **`make`** (or **`make help`**)
   Displays an auto-generated overview of all available commands and options.
 * **What happens during execution:**
