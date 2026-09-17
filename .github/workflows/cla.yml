@@ -1,0 +1,22 @@
+name: "CLA Assistant"
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  clabot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Check CLA"
+        uses: contributor-assistant/github-action@v2.3.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
+        with:
+          path-to-signatures: '.github/sign/signatures.json'
+          path-to-document: 'https://github.com/dirkbattenfeld/dgx-spark-ki/blob/main/CLA.md'
+          branch: 'main'
+          remote-repository-name: '' # leer lassen, wenn im selben Repo gespeichert
+          custom-pr-comment-pr-signed: 'Thank you @$sender! We have successfully received your signature.'
+          custom-pr-comment-not-signed: 'Hello @$sender! Please review and sign our CLA [here]($link) to enable merging.'
