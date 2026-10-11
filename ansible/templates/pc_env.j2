@@ -12,8 +12,11 @@ DISPATCHER_URL = "http://{{ dispatcher_ip }}:8000"
 REDIS_HOST={{ redis_host }}
 REDIS_PORT={{ redis_port }}
 
-# PostGreSQL für Dagster / Optuna / Persistierung
-DB_PASSWORD={{ db_password }}
+# PostGreSQL für Ingestion / Dagster / Optuna / Persistierung von Results
+POSTGRES_USER={{ postgres_user | default('optuna_user') }}
+POSTGRES_PASSWORD={{ db_password }}
+POSTGRES_DB={{ postgres_db | default('optuna') }}
+POSTGRES_PORT={{ postgres_port | default('5434') }}
 
 # Garage
 GARAGE_ADMIN_TOKEN={{ garage_admin_token }}
