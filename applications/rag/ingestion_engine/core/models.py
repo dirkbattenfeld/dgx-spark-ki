@@ -3,9 +3,8 @@
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID, uuid4
-
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -23,7 +22,37 @@ class OperationType(str, Enum):
     DELETE = "delete"
 
 
-# --- SNAPSHOT MODELL ---
+class AssetStatus(str, Enum):
+    SYNCED = "synced"
+    PENDING = "pending"
+    FAILED = "failed"
+    DEAD_LETTER = "dead_letter"
+    DELETED = "deleted"
+
+
+# --- 1. CONFIG MODELL ---
+
+class PathRuleConfig(BaseModel):
+    path: Path
+    exclude_paths: List[Path] = Field(default_factory=list, description="Vollständige Pfade oder Unterpfade die ignoriert werden")
+    exclude_extensions: List[str] = Field(default_factory=list, description="Pfadspezifische Dateiendungen zum Ausschließen")
+
+    @field_validator("path", "exclude_paths", mode="before")
+    @classmethod
+    def ensure_path(cls, v):
+        return Path(v) if v else v
+
+
+class PipelineConfig(BaseModel):
+    global_allowed_extensions: List[str] = Field(
+        ..., description="Global erlaubte Dateiendungen (z. B. .pdf, .docx, .md)"
+    )
+    watched_targets: List[PathRuleConfig] = Field(
+        ..., description="Liste der zu überwachenden Quellpfade mit ihren Regeln"
+    )
+
+
+# --- 2. SNAPSHOT MODELL (Flüchtiger Ist-Zustand im Speicher) ---
 
 class FileSnapshot(BaseModel):
     path: Path = Field(..., description="Relativer oder absoluter Pfad der Datei als eindeutiger Identifier")
@@ -39,7 +68,24 @@ class FileSnapshot(BaseModel):
         return Path(v) if v else v
 
 
-# --- JOBLIST (DIFF RESULT) MODELL ---
+# --- 3. ASSET REGISTRY MODELL (Das persistente Gedächtnis) ---
+
+class AssetRecord(BaseModel):
+    file_path: Path = Field(..., description="Eindeutiger Primärschlüssel (Dateipfad)")
+    last_seen_hash: str = Field(..., description="Letzter bekannter Inhalts-Hash")
+    last_seen_mtime: datetime = Field(..., description="Letzte bekannte Modifikationszeit")
+    status: AssetStatus = Field(default=AssetStatus.PENDING, description="Aktueller Verarbeitungsstatus des Assets")
+    last_error: Optional[str] = Field(None, description="Letzter Stacktrace/Fehler falls fehlgeschlagen")
+    deleted_at: Optional[datetime] = Field(None, description="Zeitpunkt des Soft Deletes falls verwaist")
+    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Letztes Update des Records")
+
+    @field_validator("file_path", mode="before")
+    @classmethod
+    def ensure_path(cls, v):
+        return Path(v) if v else v
+
+
+# --- 4. JOBLIST (RECONCILIATION RESULT) MODELL ---
 
 class IngestionJob(BaseModel):
     job_id: UUID = Field(default_factory=uuid4, description="Eindeutige Job-ID (UUIDv4)")
