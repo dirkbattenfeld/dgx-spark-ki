@@ -9,7 +9,8 @@ services:
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
-      - optuna-db-data:/var/lib/postgresql/data
+      - ai-pipeline_optuna-db-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -17,7 +18,9 @@ services:
       retries: 5
 
 volumes:
-  optuna-db-data:
+  ai-pipeline_optuna-db-data:
+    external: true
+
 
 
 
