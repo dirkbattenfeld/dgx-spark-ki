@@ -1,0 +1,32 @@
+# --- FastAPI & Web-Server ---
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+pydantic>=2.10.4
+pydantic-settings>=2.6.0
+
+# --- Datenbank & State (PostgreSQL & Alembic) ---
+sqlalchemy>=2.0.36
+asyncpg>=0.30.0
+psycopg2-binary>=2.9.9
+greenlet>=3.1.0
+alembic>=1.14.0
+
+# --- Messaging & Live-Updates ---
+redis>=5.2.0
+
+# --- Parsing & Ingestion ---
+pyyaml>=6.0.1
+httpx>=0.28.0
+qdrant-client>=1.12.0
+fsspec>=2026.4.0
+s3fs>=2026.4.0
+
+# --- Daten & Parsing-Helfer ---
+numpy>=2.0.0
+pandas>=2.2.0
+openpyxl>=3.1.5
+
+# --- Observability & Logging ---
+rich>=13.7.0
+
+

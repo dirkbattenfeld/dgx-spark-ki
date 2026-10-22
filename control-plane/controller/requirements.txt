@@ -42,10 +42,3 @@ opentelemetry-instrumentation-httpx
 opentelemetry-instrumentation-requests
 opentelemetry-instrumentation-logging
 
-# --- PostgreSQL ---
-sqlalchemy = ">=2.0.36"         # ORM, Core, Unit of Work, Connection Pool
-asyncpg = ">=0.30.0"            # Für den asynchronen Betrieb deiner Ingestion Engine
-psycopg2-binary = ">=2.9.9"     # Für Alembic
-greenlet = ">=3.1.0"            # Technischer Unterbau für Async-Sessions
-alembic = ">=1.14.0"            # Schema-Versionierung
-
