@@ -12,11 +12,19 @@ DISPATCHER_URL = "http://{{ dispatcher_ip }}:8000"
 REDIS_HOST={{ redis_host }}
 REDIS_PORT={{ redis_port }}
 
-# PostGreSQL für Ingestion / Dagster / Optuna / Persistierung von Results
+# PostGreSQL für Ingestion
 POSTGRES_USER={{ postgres_user | default('optuna_user') }}
 POSTGRES_PASSWORD={{ db_password }}
 POSTGRES_DB={{ postgres_db | default('optuna') }}
 POSTGRES_PORT={{ postgres_port | default('5434') }}
+POSTGRES_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
+
+# Ingestion Engine Tuning
+INGESTION_WORKER_CONCURRENCY=4
+INGESTION_BATCH_SIZE=100
+
+# PostGreSQL für Dagster / Optuna / Persistierung
+# DB_PASSWORD=postgre_password
 
 # Garage
 GARAGE_ADMIN_TOKEN={{ garage_admin_token }}

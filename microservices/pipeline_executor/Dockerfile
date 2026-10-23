@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Requirements zuerst kopieren für optimales Caching
-COPY requirements.txt .
+COPY microservices/pipeline_executor/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Den Quellcode kopieren

@@ -1,0 +1,46 @@
+{
+  "name": "DGX Spark Stack - Microservice: pipeline_executor",
+  "dockerComposeFile": [
+    "../../microservices/pipeline_executor/docker-compose.yaml"
+  ],
+  "service": "pipeline_executor",
+  "localEnvFile": "../../../.env",
+  "containerEnvFile": "../../../.env",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "root",
+  "overrideCommand": false,
+  "forwardPorts": [
+    8012
+  ],
+  "containerEnv": {
+    "PYTHONPATH": "/app:/app/src:/spark/libs:/spark/configs:/spark/applications:${PYTHONPATH}"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-python.black-formatter",
+        "ms-python.debugpy",
+        "nypwerner.autodocstring",
+        "redhat.vscode-yaml",
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        "proitspace.zoo-code",
+        "continue.continue"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.extraPaths": [
+          "/workspace",
+          "/app",
+          "/spark/libs"
+        ],
+        "python.languageServer": "Pylance",
+        "workbench.startupEditor": "none"
+      }
+    }
+  }
+}

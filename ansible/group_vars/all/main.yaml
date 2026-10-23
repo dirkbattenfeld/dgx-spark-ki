@@ -17,3 +17,4 @@ infinity_ip: "{{ gx10_ip }}"
 
 rag_pipeline_service_ip: "{{ pc_ip }}"
 qdrant_ip: "{{ pc_ip }}"
+postgres_ip: "{{pc_ip}}"
