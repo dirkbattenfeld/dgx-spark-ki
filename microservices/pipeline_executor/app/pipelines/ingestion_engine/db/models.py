@@ -4,11 +4,12 @@ from datetime import datetime
 from pathlib import Path
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum as SQLEnum, Index, Integer, String, Text
+from sqlalchemy import DateTime, Index, Integer, String, Text
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # Importiere deine Enums aus den Pydantic-Modellen
-from applications.rag.ingestion_engine.core.models import (
+from pipelines.ingestion_engine.core.models import (
     AssetStatus,
     JobStatus,
     OperationType,

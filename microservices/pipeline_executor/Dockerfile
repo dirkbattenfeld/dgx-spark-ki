@@ -13,10 +13,10 @@ COPY microservices/pipeline_executor/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Den Quellcode kopieren
-COPY . .
+COPY app/ /app/
 
 # PYTHONPATH für deine modulare Projektstruktur setzen
-ENV PYTHONPATH=/app/src:/app:/libs
+ENV PYTHONPATH=/app
 
 
 

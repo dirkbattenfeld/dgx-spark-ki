@@ -16,7 +16,7 @@ REDIS_PORT={{ redis_port }}
 POSTGRES_USER={{ postgres_user | default('optuna_user') }}
 POSTGRES_PASSWORD={{ db_password }}
 POSTGRES_DB={{ postgres_db | default('optuna') }}
-POSTGRES_PORT={{ postgres_port | default('5434') }}
+POSTGRES_PORT={{ postgres_port | default('5432') }}
 POSTGRES_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
 
 # Ingestion Engine Tuning

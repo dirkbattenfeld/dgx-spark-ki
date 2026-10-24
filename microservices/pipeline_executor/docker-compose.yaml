@@ -16,7 +16,7 @@ services:
       # der gesamte Workspace des Repos (später beseitigen)
       - ../..:/workspace
       # root directory
-      - .:/app
+      - ./app:/app
       # code of basic applications, common libs and configs from dgx-spark-stack monorepo
       - ../../applications:/spark/applications
       - ../../libs:/spark/libs
@@ -25,7 +25,7 @@ services:
       - ../../projects:/spark/projects
     environment:
       PYTHONUNBUFFERED: 1
-      PYTHONPATH: /app:/app/src:/spark/libs:/spark/configs:/spark/applications
+      PYTHONPATH: /app:/spark/libs:/spark/configs:/spark/applications
 
 
 
