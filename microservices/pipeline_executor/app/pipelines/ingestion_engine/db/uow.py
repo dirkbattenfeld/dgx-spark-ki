@@ -1,9 +1,10 @@
 from typing import Optional
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from applications.rag.ingestion_engine.core.models import JobStatus
-from applications.rag.ingestion_engine.db.models import AssetRecordModel, IngestionJobModel
+from pipelines.ingestion_engine.core.models import JobStatus
+from pipelines.ingestion_engine.db.models import AssetRecordModel, IngestionJobModel
 
 
 class IngestionRepository:
