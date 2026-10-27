@@ -1,10 +1,11 @@
 # applications/rag/ingestion_engine/core/models.py
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional
 from uuid import UUID, uuid4
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -77,7 +78,7 @@ class AssetRecord(BaseModel):
     status: AssetStatus = Field(default=AssetStatus.PENDING, description="Aktueller Verarbeitungsstatus des Assets")
     last_error: Optional[str] = Field(None, description="Letzter Stacktrace/Fehler falls fehlgeschlagen")
     deleted_at: Optional[datetime] = Field(None, description="Zeitpunkt des Soft Deletes falls verwaist")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Letztes Update des Records")
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Letztes Update des Records")
 
     @field_validator("file_path", mode="before")
     @classmethod
@@ -89,6 +90,7 @@ class AssetRecord(BaseModel):
 
 class IngestionJob(BaseModel):
     job_id: UUID = Field(default_factory=uuid4, description="Eindeutige Job-ID (UUIDv4)")
+    asset_id: Optional[UUID] = Field(None, description="Fremdschlüssel zur verknüpften Asset Registry")
     original_path: Path = Field(..., description="Quellpfad der Datei")
     cloud_path: str = Field(..., description="Zielpfad (S3-URI s3://bucket/path oder lokaler Zielpfad)")
     operation: OperationType = Field(..., description="Art der Operation (create, update, delete)")
@@ -97,8 +99,8 @@ class IngestionJob(BaseModel):
     max_retries: int = Field(default=3, ge=0, description="Maximale Anzahl an Retries vor Dead-Letter")
     stacktrace: Optional[str] = Field(None, description="Fehlermeldung / Stacktrace bei Fehlschlag")
     error_code: Optional[str] = Field(None, description="Maschinenlesbarer Fehlercode")
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Erstellungszeitpunkt des Jobs")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Letztes Update des Job-Status")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Erstellungszeitpunkt des Jobs")
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Letztes Update des Job-Status")
 
     @field_validator("original_path", mode="before")
     @classmethod
