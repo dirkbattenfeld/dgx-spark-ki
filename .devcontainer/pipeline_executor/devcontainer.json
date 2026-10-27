@@ -13,8 +13,11 @@
   "forwardPorts": [
     8012
   ],
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
   "containerEnv": {
-    "PYTHONPATH": "/app:/app/src:/spark/libs:/spark/configs:/spark/applications:${PYTHONPATH}"
+    "PYTHONPATH": "/app:/app/src:/spark/libs:/spark/configs:/spark/applications:${containerEnv:PYTHONPATH}"
   },
   "customizations": {
     "vscode": {
