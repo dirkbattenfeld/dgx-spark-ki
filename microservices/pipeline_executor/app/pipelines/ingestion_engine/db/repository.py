@@ -38,6 +38,20 @@ class IngestionRepository:
             select(AssetRecordModel).where(AssetRecordModel.file_path == file_path)
         )
         return result.scalars().first()
+    
+    async def get_assets_by_paths(self, file_paths: list[str]) -> list[AssetRecordModel]:
+        """Holt mehrere Assets per Bulk-Query (verhindert N+1-Abfragen)."""
+        result = await self.session.execute(
+            select(AssetRecordModel).where(AssetRecordModel.file_path.in_(file_paths))
+        )
+        return list(result.scalars().all())
+
+    async def get_active_assets(self) -> list[AssetRecordModel]:
+        """Gibt alle Assets zurück, die nicht als gelöscht markiert sind."""
+        result = await self.session.execute(
+            select(AssetRecordModel).where(AssetRecordModel.status != AssetStatus.DELETED)
+        )
+        return list(result.scalars().all())
 
     async def create_asset(
         self, 
