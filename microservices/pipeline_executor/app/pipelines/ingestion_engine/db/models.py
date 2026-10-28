@@ -1,4 +1,4 @@
-# applications/rag/ingestion_engine/db/models.py
+# /pipeline_executor/app/pipelines/ingestion_engine/db/models.py
 
 from datetime import datetime, timezone
 from pathlib import Path

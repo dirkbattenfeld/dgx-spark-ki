@@ -1,4 +1,4 @@
-# pipelines/ingestion_engine/db/session.py
+# pipeline_executor/app/pipelines/ingestion_engine/db/session.py
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 

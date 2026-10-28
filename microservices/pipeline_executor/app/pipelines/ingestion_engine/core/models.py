@@ -1,4 +1,4 @@
-# applications/rag/ingestion_engine/core/models.py
+# pipeline_executor/app/pipelines/ingestion_engine/core/models.py
 
 from datetime import datetime, timezone
 from enum import Enum
