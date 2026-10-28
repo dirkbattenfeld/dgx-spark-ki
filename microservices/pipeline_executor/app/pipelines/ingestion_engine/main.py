@@ -14,9 +14,9 @@ logging.basicConfig(
 
 logger = logging.getLogger("IngestionTestMain")
 
-# Importiere deine Klassen (Pfade entsprechend deines Projekts anpassen)
+from pipelines.ingestion_engine.core.config import settings
 from pipelines.ingestion_engine.core.models import PathRuleConfig, PipelineConfig
-from pipelines.ingestion_engine.core.scanner import StorageSnapshotScanner
+from pipelines.ingestion_engine.services.scanner import StorageSnapshotScanner
 
 
 def run_scanner_test():

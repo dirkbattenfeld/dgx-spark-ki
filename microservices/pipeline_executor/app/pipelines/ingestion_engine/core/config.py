@@ -1,6 +1,7 @@
-# core/config.py
+# pipeline_executor/app/pipelines/ingestion_engine/core/config.py
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     # PostgreSQL für Ingestion
