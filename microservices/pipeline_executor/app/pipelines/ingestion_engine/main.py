@@ -17,7 +17,7 @@ logger = logging.getLogger("IngestionTestMain")
 
 RUN_SCANNER = True
 RUN_RECONCILIATION = True
-RUN_JOB_WORKER = False
+RUN_JOB_WORKER = True
 INSPECT_DATABASE = True
 
 from pipelines.ingestion_engine.core.config import settings
@@ -25,7 +25,7 @@ from pipelines.ingestion_engine.core.models import PathRuleConfig, PipelineConfi
 from pipelines.ingestion_engine.db.models import AssetRecordModel, IngestionJobModel
 from pipelines.ingestion_engine.db.session import async_session_maker
 from pipelines.ingestion_engine.db.uow import AsyncUnitOfWork
-from pipelines.ingestion_engine.services.job_worker import run_job_worker_loop
+from pipelines.ingestion_engine.services.job_worker import JobWorkerService
 from pipelines.ingestion_engine.services.reconciler import ReconciliationService
 from pipelines.ingestion_engine.services.scanner import StorageSnapshotScanner
 
@@ -65,8 +65,9 @@ async def run_pipeline_test():
 
     if RUN_JOB_WORKER:
         logger.info("--- [WORKER] Job Worker Execution (Isolated Transactions) ---")
-        await run_job_worker_loop(async_session_maker)
-
+        worker = JobWorkerService(uow=AsyncUnitOfWork(async_session_maker))
+        await worker.run_worker_loop()
+        
     if INSPECT_DATABASE:
         logger.info("--- [INSPECT] PostgreSQL State Inspection ---")
         async with async_session_maker() as session:
