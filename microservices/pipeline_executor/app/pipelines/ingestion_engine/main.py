@@ -3,10 +3,10 @@
 import asyncio
 import logging
 import sys
-from datetime import timezone
 from pathlib import Path
 
-# Logging konfigurieren, damit wir sehen, was passiert
+from sqlalchemy import select
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -15,41 +15,32 @@ logging.basicConfig(
 
 logger = logging.getLogger("IngestionTestMain")
 
-# --- DEBUG & EXECUTION FLAGS (Zum Ein-/Ausschalten der Pipeline-Stufen) ---
 RUN_SCANNER = True
 RUN_RECONCILIATION = True
+RUN_JOB_WORKER = False
 INSPECT_DATABASE = True
 
-# Alle Config Variablen kommen aus der pydantic settings!
 from pipelines.ingestion_engine.core.config import settings
 from pipelines.ingestion_engine.core.models import PathRuleConfig, PipelineConfig
-from pipelines.ingestion_engine.services.scanner import StorageSnapshotScanner
-from pipelines.ingestion_engine.services.reconciler import ReconciliationService
+from pipelines.ingestion_engine.db.models import AssetRecordModel, IngestionJobModel
 from pipelines.ingestion_engine.db.session import async_session_maker
 from pipelines.ingestion_engine.db.uow import AsyncUnitOfWork
-from pipelines.ingestion_engine.db.models import AssetRecordModel, IngestionJobModel
-from sqlalchemy import select
+from pipelines.ingestion_engine.services.job_worker import run_job_worker_loop
+from pipelines.ingestion_engine.services.reconciler import ReconciliationService
+from pipelines.ingestion_engine.services.scanner import StorageSnapshotScanner
 
 
 async def run_pipeline_test():
-    logger.info("🚀 Starte End-to-End Test für Ingestion-Pipeline...")
+    logger.info("🚀 Starte End-to-End Test für generative Ingestion-Pipeline...")
 
-    # 1. Test-Konfiguration aufbauen
     test_target_dir = Path("/workspace/projects/rag02/data")
-    test_target_dir.mkdir(exist_ok=True)
+    test_target_dir.mkdir(exist_ok=True, parents=True)
 
     pipeline_config = PipelineConfig(
-        global_allowed_extensions=[".pdf", ".docx", ".xlsx"],
-        watched_targets=[
-            PathRuleConfig(
-                path=test_target_dir,
-                exclude_paths=[],
-                exclude_extensions=[]
-            )
-        ]
+        global_allowed_extensions=[".pdf", ".docx", ".xlsx", ".pptx"],
+        watched_targets=[PathRuleConfig(path=test_target_dir)]
     )
 
-    # 2. StorageClient initialisieren
     try:
         from storage.client import StorageClient
         storage_client = StorageClient()
@@ -59,63 +50,37 @@ async def run_pipeline_test():
 
     snapshots = []
 
-    # --- STUFE 1: SCANNER ---
     if RUN_SCANNER:
-        logger.info("--- [STUFE 1] Führe Snapshot-Scan aus ---")
+        logger.info("--- [SCAN] Snapshot-Scan ---")
         scanner = StorageSnapshotScanner(config=pipeline_config, storage_client=storage_client)
         snapshots = scanner.scan()
-        logger.info(f"📊 Scan beendet. Gefundene Snapshots: {len(snapshots)}")
-        for snap in snapshots:
-            logger.info(f"   - Pfad: {snap.path} | Größe: {snap.size_bytes} Bytes | Mtime: {snap.mtime}")
-    else:
-        logger.info("⏭️ Scanner übersprungen (Flag ist False).")
+        logger.info("📊 Snapshots gefunden: %d", len(snapshots))
 
-    # --- STUFE 2: RECONCILIATION ---
     if RUN_RECONCILIATION:
-        logger.info("--- [STUFE 2] Führe Reconciliation (Delta-Abgleich) aus ---")
-        if not snapshots:
-            logger.warning("⚠️ Keine Snapshots vorhanden zum Abgleichen. Bitte aktiviere den Scanner oder erstelle Testdaten.")
-        else:
-            # Unit of Work initialisieren und Reconciler aufrufen
+        logger.info("--- [RECONCILE] Chunked Reconciler & 3-Stage Pipeline ---")
+        if snapshots:
             uow = AsyncUnitOfWork(async_session_maker)
-            reconciler = ReconciliationService(uow=uow, storage_client=storage_client, batch_size=5)
-            
-            jobs_created = await reconciler.reconcile(snapshots)
-            logger.info(f"✨ Reconciliation beendet. Erstellte Jobs: {jobs_created}")
-    else:
-        logger.info("⏭️ Reconciliation übersprungen (Flag ist False).")
+            reconciler = ReconciliationService(uow=uow, storage_client=storage_client)
+            await reconciler.reconcile(snapshots)
 
-    # --- STUFE 3: DATABASE INSPECTION ---
+    if RUN_JOB_WORKER:
+        logger.info("--- [WORKER] Job Worker Execution (Isolated Transactions) ---")
+        await run_job_worker_loop(async_session_maker)
+
     if INSPECT_DATABASE:
-        logger.info("--- [STUFE 3] Inspiziere PostgreSQL Tabellen ---")
+        logger.info("--- [INSPECT] PostgreSQL State Inspection ---")
         async with async_session_maker() as session:
-            # 1. asset_registry ausgeben
             res_assets = await session.execute(select(AssetRecordModel))
             assets = res_assets.scalars().all()
-            logger.info("==================================================")
-            logger.info("📂 TABELLE: asset_registry (%d Einträge)", len(assets))
-            logger.info("==================================================")
+            logger.info("📂 ASSET REGISTRY (%d Einträge):", len(assets))
             for a in assets:
-                logger.info(
-                    "Path: %s\n  -> Hash: %s... | Status: %s | Mtime: %s | DeletedAt: %s",
-                    a.file_path, a.last_seen_hash[:12] if a.last_seen_hash else "None",
-                    a.status, a.last_seen_mtime, a.deleted_at
-                )
+                logger.info("   - Path: %s | Status: %s", a.file_path, a.status)
 
-            # 2. ingestion_jobs ausgeben
             res_jobs = await session.execute(select(IngestionJobModel))
             jobs = res_jobs.scalars().all()
-            logger.info("==================================================")
-            logger.info("⚙️ TABELLE: ingestion_jobs (%d Einträge)", len(jobs))
-            logger.info("==================================================")
+            logger.info("⚙️ INGESTION JOBS (%d Einträge):", len(jobs))
             for j in jobs:
-                logger.info(
-                    "Job ID: %s\n  -> Asset: %s\n  -> Operation: %s | Status: %s | CloudPath: %s",
-                    j.job_id, j.asset_path, j.operation, j.status, j.cloud_path
-                )
-            logger.info("==================================================")
-    else:
-        logger.info("⏭️ Datenbank-Inspektion übersprungen (Flag ist False).")
+                logger.info("   - ID: %s | Op: %s | Status: %s", j.job_id, j.operation, j.status)
 
 
 if __name__ == "__main__":

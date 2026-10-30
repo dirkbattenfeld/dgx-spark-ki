@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Ingestion Engine Tuning
     ingestion_worker_concurrency: int = 4
-    ingestion_batch_size: int = 100
+    ingestion_batch_size: int = 5   # 500 für Produktion
 
     # Pydantic v2 Konfiguration
     model_config = SettingsConfigDict(

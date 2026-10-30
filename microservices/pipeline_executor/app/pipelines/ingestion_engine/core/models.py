@@ -3,10 +3,10 @@
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class JobStatus(str, Enum):
@@ -16,12 +16,11 @@ class JobStatus(str, Enum):
     FAILED = "failed"
     DEAD_LETTER = "dead_letter"
 
-
 class OperationType(str, Enum):
     CREATE = "create"
     UPDATE = "update"
     DELETE = "delete"
-
+    MOVE = "move"
 
 class AssetStatus(str, Enum):
     SYNCED = "synced"
@@ -29,9 +28,31 @@ class AssetStatus(str, Enum):
     FAILED = "failed"
     DEAD_LETTER = "dead_letter"
     DELETED = "deleted"
+    MOVED = "moved"
+
+class DiffStatus(str, Enum):
+    UNCHANGED = "UNCHANGED"
+    MODIFIED = "MODIFIED"
+    NEW = "NEW"
+    DELETED = "DELETED"
+    MOVED = "MOVED"
 
 
-# --- 1. CONFIG MODELL ---
+class PlannedAction(str, Enum):
+    SKIP = "SKIP"
+    INDEX_FULL = "INDEX_FULL"
+    UPDATE_PATH_ONLY = "UPDATE_PATH_ONLY"
+    REMOVE_VECTORS = "REMOVE_VECTORS"
+    CANCEL_PENDING_CREATE = "CANCEL_PENDING_CREATE"
+
+
+class PipelineCommand(str, Enum):
+    NONE = "NONE"
+    COMPUTE_HASH = "COMPUTE_HASH"
+    DETECT_MOVE = "DETECT_MOVE"
+    
+    
+# --- CONFIG MODELL ---
 
 class PathRuleConfig(BaseModel):
     path: Path
@@ -53,7 +74,7 @@ class PipelineConfig(BaseModel):
     )
 
 
-# --- 2. SNAPSHOT MODELL (Flüchtiger Ist-Zustand im Speicher) ---
+# --- SNAPSHOT MODELL (Flüchtiger Ist-Zustand im Speicher) ---
 
 class FileSnapshot(BaseModel):
     path: Path = Field(..., description="Relativer oder absoluter Pfad der Datei als eindeutiger Identifier")
@@ -69,7 +90,7 @@ class FileSnapshot(BaseModel):
         return Path(v) if v else v
 
 
-# --- 3. ASSET REGISTRY MODELL (Das persistente Gedächtnis) ---
+# --- ASSET REGISTRY MODELL (Das persistente Gedächtnis) ---
 
 class AssetRecord(BaseModel):
     file_path: Path = Field(..., description="Eindeutiger Primärschlüssel (Dateipfad)")
@@ -84,9 +105,11 @@ class AssetRecord(BaseModel):
     @classmethod
     def ensure_path(cls, v):
         return Path(v) if v else v
+    
+    model_config = ConfigDict(from_attributes=True)
 
 
-# --- 4. JOBLIST (RECONCILIATION RESULT) MODELL ---
+# --- JOBLIST (RECONCILIATION RESULT) MODELL ---
 
 class IngestionJob(BaseModel):
     job_id: UUID = Field(default_factory=uuid4, description="Eindeutige Job-ID (UUIDv4)")
@@ -106,3 +129,39 @@ class IngestionJob(BaseModel):
     @classmethod
     def ensure_path(cls, v):
         return Path(v) if v else v
+
+
+# --- PIPELINE CONTEXT ---
+
+class AssetContext(BaseModel):
+    path: str
+    snapshot_item: Optional[FileSnapshot] = None
+    ledger_record: Optional[AssetRecord] = None
+
+    active_command: PipelineCommand = PipelineCommand.NONE
+    detected_old_path: Optional[str] = None
+    detected_new_path: Optional[str] = None
+
+    diff_status: Optional[DiffStatus] = None
+    planned_action: PlannedAction = PlannedAction.SKIP
+    needs_parsing: bool = False
+    needs_embedding: bool = False
+
+    ledger_mutation: Optional[Dict[str, Any]] = None
+    job_mutation: Optional[Dict[str, Any]] = None
+    vector_operation: Optional[Dict[str, Any]] = None
+
+
+# --- JOB WORKER CONTEXT ---
+
+class JobContext(BaseModel):
+    job: Any
+    execution_error: Optional[Exception] = None
+    error_classified: bool = False
+    error_severity: Optional[str] = None
+    new_job_status: Optional[JobStatus] = None
+    increment_retry: bool = False
+    error_message: Optional[str] = None
+    
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
