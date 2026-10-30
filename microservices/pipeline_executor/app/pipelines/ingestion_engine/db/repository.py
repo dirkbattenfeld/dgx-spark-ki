@@ -18,6 +18,7 @@ class IngestionRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    # Asset Registry Ledger Operatione
     async def get_by_hash(self, file_hash: str) -> Optional[AssetRecordModel]:
         result = await self.session.execute(
             select(AssetRecordModel).where(AssetRecordModel.last_seen_hash == file_hash)
@@ -148,3 +149,14 @@ class IngestionRepository:
             job.status = JobStatus.RUNNING
             await self.session.flush()
         return job
+
+    async def reset_running_jobs_to_pending(self) -> int:
+        """Setzt hängengebliebene RUNNING-Jobs beim Startup auf PENDING zurück und gibt die Anzahl zurück."""
+        stmt = (
+            update(IngestionJobModel)
+            .where(IngestionJobModel.status == JobStatus.RUNNING)
+            .values(status=JobStatus.PENDING, updated_at=datetime.now(timezone.utc))
+        )
+        result = await self.session.execute(stmt)
+        return result.rowcount
+

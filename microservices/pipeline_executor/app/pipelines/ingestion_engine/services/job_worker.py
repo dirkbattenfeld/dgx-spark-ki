@@ -2,11 +2,20 @@
 
 import logging
 from datetime import datetime, timezone
+
 from sqlalchemy import update
+
+from pipelines.ingestion_engine.core.decision_tables import (
+    WORKER_STAGE_1_RULES,
+    WORKER_STAGE_2_RULES,
+    DecisionTableRunner,
+)
 from pipelines.ingestion_engine.core.models import JobContext, JobStatus
-from pipelines.ingestion_engine.core.decision_tables import DecisionTableRunner, WORKER_STAGE_1_RULES, WORKER_STAGE_2_RULES
-from pipelines.ingestion_engine.services.effect_handlers import effect_execute_job_payload, effect_analyze_error
 from pipelines.ingestion_engine.db.models import IngestionJobModel
+from pipelines.ingestion_engine.services.effect_handlers import (
+    effect_analyze_error,
+    effect_execute_job_payload,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,14 +26,9 @@ async def run_job_worker_loop(uow_factory) -> int:
 
     # --- STARTUP CLEANUP: Verhindert Zombie-Jobs nach Testabbrüchen ---
     async with uow_factory() as cleanup_uow:
-        stmt = (
-            update(IngestionJobModel)
-            .where(IngestionJobModel.status == JobStatus.RUNNING)
-            .values(status=JobStatus.PENDING, updated_at=datetime.now(timezone.utc))
-        )
-        result = await cleanup_uow.session.execute(stmt)
+        rowcount = await cleanup_uow.repo.reset_running_jobs_to_pending()
         logger.info("🧹 Startup Cleanup: %d hängengebliebene RUNNING-Jobs auf PENDING zurückgesetzt.", result.rowcount)
-
+                    
     while True:
         # --- TRANSAKTION A: Job holen & sperren ---
         async with uow_factory() as uow:
