@@ -50,10 +50,14 @@ class PipelineCommand(str, Enum):
     NONE = "NONE"
     COMPUTE_HASH = "COMPUTE_HASH"
     DETECT_MOVE = "DETECT_MOVE"
+
+class JobCommand(str, Enum):
+    EXECUTE_PAYLOAD = "EXECUTE_PAYLOAD"
+    ANALYZE_ERROR = "ANALYZE_ERROR"
+    PERSIST_RESULT = "PERSIST_RESULT"
     
     
 # --- CONFIG MODELL ---
-
 class PathRuleConfig(BaseModel):
     path: Path
     exclude_paths: List[Path] = Field(default_factory=list, description="Vollständige Pfade oder Unterpfade die ignoriert werden")
@@ -155,13 +159,16 @@ class AssetContext(BaseModel):
 # --- JOB WORKER CONTEXT ---
 
 class JobContext(BaseModel):
-    job: Any
-    execution_error: Optional[Exception] = None
-    error_classified: bool = False
-    error_severity: Optional[str] = None
-    new_job_status: Optional[JobStatus] = None
-    increment_retry: bool = False
-    error_message: Optional[str] = None
+    model_config = ConfigDict(arbitrary_types_allowed=True, from_attributes=True)
     
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    job: Any  # IngestionJobModel
+    active_command: Optional[JobCommand] = None  
+    execution_error: Optional[Exception] = None
+    error_message: Optional[str] = None
+    error_classified: bool = False
+    error_severity: Optional[str] = None    
+    new_job_status: Optional[Any] = None
+    increment_retry: bool = False
+
+    
     

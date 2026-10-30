@@ -7,6 +7,7 @@ from pipelines.ingestion_engine.core.models import (
     AssetContext,
     AssetStatus,
     DiffStatus,
+    JobCommand,
     JobStatus,
     PipelineCommand,
     PlannedAction,
@@ -26,17 +27,25 @@ class DecisionTableRunner:
     @staticmethod
     def evaluate(context: Any, rules: List[DecisionRule]) -> Any:
         for rule in rules:
-            match = all(cond(context) for cond in rule.conditions)
-            if match:
-                logger.debug("📋 Decision Rule angewendet: '%s'", rule.name)
-                for key, val in rule.actions.items():
-                    if callable(val):
-                        setattr(context, key, val(context))
-                    else:
-                        setattr(context, key, val)
-                break
+            try:
+                match = all(cond(context) for cond in rule.conditions)
+                if match:
+                    logger.debug("🎯 [Decision Table] Regel greift: %s", rule.name)
+                    for key, value in rule.actions.items():
+                        if callable(value):
+                            # Für dynamische Mutationen (z.B. Lambdas die Dictionaries zurückgeben)
+                            mutation_result = value(context)
+                            setattr(context, key, mutation_result)
+                        else:
+                            setattr(context, key, value)
+                    break
+            except Exception as e:
+                logger.error("❌ Fehler bei Auswertung von Regel '%s': %s", rule.name, e)
+                raise
         return context
 
+
+# Rules für Reconciler
 
 STAGE_1_RULES = [
     DecisionRule(
@@ -154,33 +163,66 @@ STAGE_3_RULES = [
 ]
 
 
+# Rules für Worker
+# STAGE 1: Payload ausführen
 WORKER_STAGE_1_RULES = [
     DecisionRule(
-        name="HasError",
-        conditions=[lambda ctx: ctx.execution_error is not None],
-        actions={"error_classified": True, "error_severity": "error"}
-    ),
+        name="TriggerPayloadExecution",
+        conditions=[lambda ctx: ctx.job.status == JobStatus.PENDING and ctx.execution_error is None],
+        actions={"active_command": JobCommand.EXECUTE_PAYLOAD}
+    )
+]
+
+# STAGE 2: Post-Execution Weiche (Fehler-Analyse ODER direkter Erfolg)
+WORKER_STAGE_2_RULES = [
+    # Wenn ein Fehler aufgetreten ist -> Fehler analysieren
     DecisionRule(
-        name="NoError",
+        name="Path_HasError",
+        conditions=[lambda ctx: ctx.execution_error is not None],
+        actions={
+            "active_command": JobCommand.ANALYZE_ERROR,
+            "error_classified": True,
+            "error_severity": "error"
+        }
+    ),
+    # Wenn KEIN Fehler aufgetreten ist -> Direkt auf Erfolg stellen (Keine Analyse!)
+    DecisionRule(
+        name="Path_Success",
         conditions=[lambda ctx: ctx.execution_error is None],
-        actions={"error_classified": True, "error_severity": "none"}
+        actions={
+            "active_command": JobCommand.PERSIST_RESULT,
+            "error_classified": True,
+            "error_severity": "none",
+            "new_job_status": JobStatus.SUCCESS,
+            "increment_retry": False
+        }
     ),
 ]
 
-WORKER_STAGE_2_RULES = [
+# STAGE 3: Nur für den Fehlerfall: Retry vs. DeadLetter Entscheidung
+WORKER_STAGE_3_RULES = [
     DecisionRule(
-        name="Success",
-        conditions=[lambda ctx: ctx.execution_error is None],
-        actions={"new_job_status": JobStatus.SUCCESS, "increment_retry": False}
+        name="Error_Retry",
+        conditions=[
+            lambda ctx: ctx.execution_error is not None and (ctx.job.retry_count + 1) < ctx.job.max_retries
+        ],
+        actions={
+            "active_command": JobCommand.PERSIST_RESULT,
+            "new_job_status": JobStatus.PENDING,
+            "increment_retry": True
+        }
     ),
     DecisionRule(
-        name="Retry",
-        conditions=[lambda ctx: ctx.execution_error is not None and ctx.job.retry_count + 1 < ctx.job.max_retries],
-        actions={"new_job_status": JobStatus.PENDING, "increment_retry": True}
-    ),
-    DecisionRule(
-        name="DeadLetter",
-        conditions=[lambda ctx: ctx.execution_error is not None and ctx.job.retry_count + 1 >= ctx.job.max_retries],
-        actions={"new_job_status": JobStatus.DEAD_LETTER, "increment_retry": True}
+        name="Error_DeadLetter",
+        conditions=[
+            lambda ctx: ctx.execution_error is not None and (ctx.job.retry_count + 1) >= ctx.job.max_retries
+        ],
+        actions={
+            "active_command": JobCommand.PERSIST_RESULT,
+            "new_job_status": JobStatus.DEAD_LETTER,
+            "increment_retry": True
+        }
     ),
 ]
+
+

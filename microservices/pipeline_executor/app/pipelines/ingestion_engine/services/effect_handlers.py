@@ -8,6 +8,7 @@ from storage.client import StorageClient
 
 from pipelines.ingestion_engine.core.models import (
     AssetContext,
+    JobCommand,
     JobContext,
     PipelineCommand,
 )
@@ -16,15 +17,20 @@ from pipelines.ingestion_engine.db.uow import AsyncUnitOfWork
 logger = logging.getLogger(__name__)
 
 
+# Effect Execution Runner für Reconciler und Job_Worker
 class EffectExecutionRunner:
+    """Universeller Effekt-Dispatcher für alle Context-Typen (Functional Core -> Imperative Shell)."""
     @staticmethod
-    async def execute_command(context: AssetContext, registry: Dict[PipelineCommand, Callable], *args, **kwargs) -> None:
-        handler = registry.get(context.active_command)
+    async def execute_command(context: Any, registry: Dict[Any, Callable], *args, **kwargs) -> None:
+        command = getattr(context, "active_command", None)
+        handler = registry.get(command)
         if handler:
-            logger.debug("⚡ [Effect Runner] Führe Command aus: %s", context.active_command)
+            logger.debug("⚡ [Effect Runner] Führe Command aus: %s", command)
             await handler(context, *args, **kwargs)
-            context.active_command = PipelineCommand.NONE
+            setattr(context, "active_command", None)
 
+
+# Effects für Reconciler
 
 async def effect_compute_hash(context: AssetContext, uow: AsyncUnitOfWork, storage: StorageClient):
     if context.snapshot_item:
@@ -61,22 +67,63 @@ PIPELINE_EFFECT_REGISTRY = {
 }
 
 
-async def effect_execute_job_payload(context: JobContext, uow: AsyncUnitOfWork):
+# Effects für Job_Worker
+# --- MOCK-KOMPONENTEN FÜR DIE JOB-PAYLOADS ---
+
+async def mock_delete_job_payload(context: JobContext, *args, **kwargs):
+    """Mock für Qdrant Vektor-Löschung bei DELETE-Jobs."""
+    job_id = context.job.job_id
+    logger.info("🧹 [Job Mock Shell] Qdrant: Lösche Vektoren für Job ID: %s", job_id)
+    # Späterer echter Code hier:
+    # await qdrant_client.delete(collection_name=..., points_selector=...)
+    context.new_job_status = JobStatus.SUCCESS
+
+
+async def mock_create_job_payload(context: JobContext, *args, **kwargs):
+    """Mock für Ingestion-Pipeline (Docling, Embedding, Qdrant Upsert) bei CREATE/UPDATE-Jobs."""
+    job_id = context.job.job_id
+    logger.info("🚀 [Job Mock Shell] Ingestion Pipeline: Starte Voll-Indexierung (Docling/Embedding) für Job ID: %s", job_id)
+    # Späterer echter Code hier:
+    # parsed_doc = await docling_parser.parse(...)
+    # vectors = await embedding_generator.generate(...)
+    # await qdrant_client.upsert(...)
+    context.new_job_status = JobStatus.SUCCESS
+
+
+async def effect_execute_job_payload(context: JobContext, *args, **kwargs):
+    """Dispatcher-Weiche für Job-Payloads (DELETE vs. CREATE/INDEX)."""
     try:
-        logger.info("🚀 [Worker Effect] Payload Ausführung für Job ID: %s", context.job.job_id)
+        # Ermittle den Job-Typ (je nach Modellfeld z.B. job_type, action oder payload_type)
+        job_type = getattr(context.job, "job_type", "CREATE")
+        
+        logger.info("🚀 [Worker Effect] Führe Payload für Job ID aus: %s [Typ: %s]", context.job.job_id, job_type)
+        
+        if job_type == "DELETE":
+            await mock_delete_job_payload(context, *args, **kwargs)
+        else:
+            # Standard: CREATE / INDEX / UPDATE
+            await mock_create_job_payload(context, *args, **kwargs)
+            
     except Exception as e:
+        logger.error("❌ [Worker Effect] Fehler bei Payload-Ausführung: %s", e)
         context.execution_error = e
+        context.new_job_status = JobStatus.FAILED
 
 
-async def effect_analyze_error(context: JobContext, uow: AsyncUnitOfWork):
+async def effect_analyze_error(context: JobContext, *args, **kwargs):
+    """Extrahiert die Fehlermeldung, wenn ein Fehler aufgetreten ist (Shell-Operation)."""
     if context.execution_error:
         context.error_message = str(context.execution_error)
+        logger.warning("⚠️ [Worker Effect] Fehler analysiert und extrahiert: %s", context.error_message)
 
 
-async def effect_persist_job_result(context: JobContext, uow: AsyncUnitOfWork):
-    job = context.job
-    job.status = context.new_job_status
-    if context.increment_retry:
-        job.retry_count += 1
-    if context.error_message:
-        job.stacktrace = context.error_message
+async def effect_persist_job_result(context: JobContext, *args, **kwargs):
+    """Bereitet das persistente Ergebnis vor."""
+    logger.info("💾 [Worker Effect] Persistenz-Schritt vorbereitet für Status: %s", context.new_job_status)
+
+
+WORKER_EFFECT_REGISTRY = {
+    JobCommand.EXECUTE_PAYLOAD: effect_execute_job_payload,
+    JobCommand.ANALYZE_ERROR: effect_analyze_error,
+    JobCommand.PERSIST_RESULT: effect_persist_job_result,
+}

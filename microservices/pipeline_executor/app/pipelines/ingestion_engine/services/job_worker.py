@@ -1,20 +1,18 @@
 # pipeline_executor/app/pipelines/ingestion_engine/services/job_worker.py
 
 import logging
-from datetime import datetime, timezone
-
-from sqlalchemy import update
 
 from pipelines.ingestion_engine.core.decision_tables import (
     WORKER_STAGE_1_RULES,
     WORKER_STAGE_2_RULES,
+    WORKER_STAGE_3_RULES,
     DecisionTableRunner,
 )
-from pipelines.ingestion_engine.core.models import JobContext, JobStatus
+from pipelines.ingestion_engine.core.models import JobContext
 from pipelines.ingestion_engine.db.models import IngestionJobModel
 from pipelines.ingestion_engine.services.effect_handlers import (
-    effect_analyze_error,
-    effect_execute_job_payload,
+    WORKER_EFFECT_REGISTRY,
+    EffectExecutionRunner,
 )
 
 logger = logging.getLogger(__name__)
@@ -24,11 +22,11 @@ async def run_job_worker_loop(uow_factory) -> int:
     processed = 0
     logger.info("⚙️ Starte Job Worker mit isolierten Transaktionsgrenzen...")
 
-    # --- STARTUP CLEANUP: Verhindert Zombie-Jobs nach Testabbrüchen ---
+    # --- STARTUP CLEANUP: Verhindert Zombie-Jobs nach Testabbrüchen (über Repository gekapselt) ---
     async with uow_factory() as cleanup_uow:
         rowcount = await cleanup_uow.repo.reset_running_jobs_to_pending()
-        logger.info("🧹 Startup Cleanup: %d hängengebliebene RUNNING-Jobs auf PENDING zurückgesetzt.", result.rowcount)
-                    
+        logger.info("🧹 Startup Cleanup: %d hängengebliebene RUNNING-Jobs auf PENDING zurückgesetzt.", rowcount)
+
     while True:
         # --- TRANSAKTION A: Job holen & sperren ---
         async with uow_factory() as uow:
@@ -39,11 +37,17 @@ async def run_job_worker_loop(uow_factory) -> int:
 
         ctx = JobContext(job=job)
 
-        # --- EXECUTIONS (Außerhalb der DB-Tx) ---
-        await effect_execute_job_payload(ctx, uow=None)
+        # --- STAGE 1: Payload ausführen ---
         ctx = DecisionTableRunner.evaluate(ctx, WORKER_STAGE_1_RULES)
-        await effect_analyze_error(ctx, uow=None)
+        await EffectExecutionRunner.execute_command(ctx, WORKER_EFFECT_REGISTRY)
+
+        # --- STAGE 2: Post-Execution Weiche (Fehler-Analyse ODER direkter Erfolg) ---
         ctx = DecisionTableRunner.evaluate(ctx, WORKER_STAGE_2_RULES)
+        await EffectExecutionRunner.execute_command(ctx, WORKER_EFFECT_REGISTRY)
+
+        # --- STAGE 3: Nur im Fehlerfall: Retry vs. DeadLetter Entscheidung ---
+        ctx = DecisionTableRunner.evaluate(ctx, WORKER_STAGE_3_RULES)
+        await EffectExecutionRunner.execute_command(ctx, WORKER_EFFECT_REGISTRY)
 
         # --- TRANSAKTION B: Ergebnis isoliert persistieren ---
         async with uow_factory() as uow:
