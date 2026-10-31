@@ -49,21 +49,8 @@ async def effect_compute_hash(context: AssetContext, uow: AsyncUnitOfWork, stora
             raise
 
 
-async def effect_detect_move(context: AssetContext, uow: AsyncUnitOfWork, storage: StorageClient):
-    if context.snapshot_item and not context.snapshot_item.file_hash:
-        await effect_compute_hash(context, uow, storage)
-
-    if context.snapshot_item and context.snapshot_item.file_hash and not context.ledger_record:
-        existing = await uow.repo.get_by_hash(context.snapshot_item.file_hash)
-        if existing:
-            context.detected_old_path = existing.file_path
-            context.detected_new_path = context.path
-            logger.info("🚚 [Effect] Move erkannt: '%s' -> '%s'", existing.file_path, context.path)
-
-
 PIPELINE_EFFECT_REGISTRY = {
     PipelineCommand.COMPUTE_HASH: effect_compute_hash,
-    PipelineCommand.DETECT_MOVE: effect_detect_move,
 }
 
 

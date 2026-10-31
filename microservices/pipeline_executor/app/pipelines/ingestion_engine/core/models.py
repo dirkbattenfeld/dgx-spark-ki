@@ -41,10 +41,9 @@ class DiffStatus(str, Enum):
 class PlannedAction(str, Enum):
     SKIP = "SKIP"
     INDEX_FULL = "INDEX_FULL"
-    UPDATE_PATH_ONLY = "UPDATE_PATH_ONLY"
     REMOVE_VECTORS = "REMOVE_VECTORS"
     CANCEL_PENDING_CREATE = "CANCEL_PENDING_CREATE"
-
+    SYNCED = "synced"
 
 class PipelineCommand(str, Enum):
     NONE = "NONE"

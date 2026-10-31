@@ -59,21 +59,6 @@ STAGE_1_RULES = [
         actions={"active_command": PipelineCommand.COMPUTE_HASH}
     ),
     DecisionRule(
-        name="HashComputedMatches",
-        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is not None and ctx.snapshot_item.file_hash == ctx.ledger_record.last_seen_hash],
-        actions={"active_command": PipelineCommand.NONE, "diff_status": DiffStatus.UNCHANGED, "planned_action": PlannedAction.SKIP}
-    ),
-    DecisionRule(
-        name="HashComputedDiffers",
-        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is not None and ctx.snapshot_item.file_hash != ctx.ledger_record.last_seen_hash],
-        actions={"active_command": PipelineCommand.DETECT_MOVE}
-    ),
-    DecisionRule(
-        name="NewFileDetectMove",
-        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is None],
-        actions={"active_command": PipelineCommand.DETECT_MOVE}
-    ),
-    DecisionRule(
         name="FileDeleted_Synced",
         conditions=[
             lambda ctx: ctx.snapshot_item is None and ctx.ledger_record is not None and ctx.ledger_record.status == AssetStatus.SYNCED
@@ -92,18 +77,25 @@ STAGE_1_RULES = [
 
 STAGE_2_RULES = [
     DecisionRule(
-        name="FileIsMoved",
-        conditions=[lambda ctx: ctx.detected_old_path is not None],
-        actions={"diff_status": DiffStatus.MOVED, "planned_action": PlannedAction.UPDATE_PATH_ONLY}
+        name="FileIsSyncedFalseAlarm",
+        # BEGRÜNDUNG: Der Zeitstempel (mtime) hat sich zwar geändert, aber der berechnete Hash 
+        # ist identisch mit dem Ledger-Hash. Das fängt False Alarms (z. B. durch Backups oder Kopiervorgänge) 
+        # ab und verhindert unnötiges Re-Parsing. Führt nur ein mtime-Update aus (SYNCED).
+        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is not None and ctx.snapshot_item.file_hash == ctx.ledger_record.last_seen_hash],
+        actions={"diff_status": DiffStatus.UNCHANGED, "planned_action": PlannedAction.SYNCED}
     ),
     DecisionRule(
         name="FileIsTrulyNew",
-        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is None and ctx.detected_old_path is None],
+        # BEGRÜNDUNG: Die Datei existiert im Ledger noch überhaupt nicht (völlig neuer Pfad) 
+        # -> Volles Indexieren (INDEX_FULL / Create).
+        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is None],
         actions={"diff_status": DiffStatus.NEW, "planned_action": PlannedAction.INDEX_FULL}
     ),
     DecisionRule(
         name="FileIsModifiedInPlace",
-        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is not None and ctx.snapshot_item.file_hash != ctx.ledger_record.last_seen_hash and ctx.detected_old_path is None],
+        # BEGRÜNDUNG: Die Datei existiert im Ledger, aber der Hash weicht ab (Inhalt wurde tatsächlich editiert) 
+        # -> Volles Neu-Indexieren (INDEX_FULL / Update).
+        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is not None and ctx.snapshot_item.file_hash != ctx.ledger_record.last_seen_hash],
         actions={"diff_status": DiffStatus.MODIFIED, "planned_action": PlannedAction.INDEX_FULL}
     ),
     DecisionRule(
@@ -127,10 +119,14 @@ STAGE_3_RULES = [
         }
     ),
     DecisionRule(
-        name="PrepMove",
-        conditions=[lambda ctx: ctx.planned_action == PlannedAction.UPDATE_PATH_ONLY],
+        name="PrepSynced",
+        # BEGRÜNDUNG: Aktualisiert bei inhaltsgleichen Dateien (False Alarm) lediglich den mtime-Zeitstempel 
+        # im Ledger. Es werden keine Jobs oder Vektor-Operationen generiert.
+        conditions=[lambda ctx: ctx.planned_action == PlannedAction.SYNCED and ctx.snapshot_item is not None],
         actions={
-            "ledger_mutation": lambda ctx: {"action": "move", "old_path": ctx.detected_old_path, "new_path": ctx.detected_new_path}
+            "ledger_mutation": lambda ctx: {"action": "update_mtime", "file_path": ctx.path, "mtime": ctx.snapshot_item.mtime},
+            "job_mutation": None,
+            "vector_operation": None
         }
     ),
     DecisionRule(

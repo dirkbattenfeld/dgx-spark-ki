@@ -172,7 +172,7 @@ class IngestionRepository:
         error_message: str | None,
         error_severity: str | None = None
     ):
-        # 1. Job holen und Status updaten
+        # 1. Job holen und Status updaten (Dein robuster Original-Code)
         job = await self.session.get(IngestionJobModel, job_id)
         if not job:
             return
@@ -192,19 +192,34 @@ class IngestionRepository:
         if error_severity and hasattr(job, "error_severity"):
             job.error_severity = error_severity
 
-        # 2. Zugehöriges Asset im Ledger über asset_path finden und synchronisieren
+        # 2. Zugehöriges Asset im Ledger synchronisieren (Mit Operation-Weiche)
         target_path = getattr(job, "asset_path", None)
+        job_operation = getattr(job, "operation", None)
+
         if target_path:
-            asset = await self.get_by_path(target_path)
-            if asset:
-                if new_job_status == JobStatus.SUCCESS:
-                    asset.status = AssetStatus.SYNCED
-                    asset.last_synced_at = datetime.now(timezone.utc)
-                    logger.info("🟢 [Ledger Sync] Asset status auf SYNCED gesetzt für: %s", target_path)
-                elif new_job_status == JobStatus.DEAD_LETTER:
+            if new_job_status == JobStatus.SUCCESS:
+                # KORREKTUR: Unterscheidung zwischen DELETE und CREATE/UPDATE-Jobs
+                if job_operation == OperationType.DELETE:
+                    # Bei erfolgreichem Delete-Job: Asset aus dem Ledger entfernen, 
+                    # damit es nicht fälschlicherweise als SYNCED reaktiviert wird!
+                    asset = await self.get_by_path(target_path)
+                    if asset:
+                        await self.session.delete(asset)
+                        logger.info("🗑️ [Ledger Sync] Asset erfolgreich aus Ledger entfernt für gelöschten Pfad: %s", target_path)
+                else:
+                    # Standard für CREATE / UPDATE: Auf SYNCED setzen
+                    asset = await self.get_by_path(target_path)
+                    if asset:
+                        asset.status = AssetStatus.SYNCED
+                        asset.last_synced_at = datetime.now(timezone.utc)
+                        logger.info("🟢 [Ledger Sync] Asset status auf SYNCED gesetzt für: %s", target_path)
+                        
+            elif new_job_status == JobStatus.DEAD_LETTER:
+                asset = await self.get_by_path(target_path)
+                if asset:
                     asset.status = AssetStatus.FAILED
                     logger.warning("🔴 [Ledger Sync] Asset status auf FAILED gesetzt für: %s", target_path)
-        
+   
                     
     async def prune_jobs(self) -> dict[str, int]:
         # 1. Success-Jobs sofort löschen (0 Tage Retention)
