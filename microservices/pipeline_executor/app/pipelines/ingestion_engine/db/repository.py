@@ -18,7 +18,7 @@ class IngestionRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    # Asset Registry Ledger Operatione
+# Asset Registry Ledger Operations im Reconciler
     async def get_by_hash(self, file_hash: str) -> Optional[AssetRecordModel]:
         result = await self.session.execute(
             select(AssetRecordModel).where(AssetRecordModel.last_seen_hash == file_hash)
@@ -61,6 +61,8 @@ class IngestionRepository:
         )
         await self.session.execute(stmt)
 
+
+# LEDGER UND JobList: Ein Batch von Ergebnissen im Reconciler in den Ledger und die JobList persistieren
     async def bulk_persist_chunk(
         self, 
         ledger_mutations: List[Dict[str, Any]], 
@@ -135,6 +137,7 @@ class IngestionRepository:
 
         await self.session.flush()
 
+# JobList Operations
     async def fetch_next_pending_job_with_skip_locked(self) -> Optional[IngestionJobModel]:
         stmt = (
             select(IngestionJobModel)
@@ -160,3 +163,44 @@ class IngestionRepository:
         result = await self.session.execute(stmt)
         return result.rowcount
 
+
+    async def finalize_job_execution(
+        self, 
+        job_id: str, 
+        new_job_status: JobStatus, 
+        increment_retry: bool, 
+        error_message: str | None,
+        error_severity: str | None = None
+    ):
+        # 1. Job holen und Status updaten
+        job = await self.session.get(IngestionJobModel, job_id)
+        if not job:
+            return
+
+        job.status = new_job_status
+        job.updated_at = datetime.now(timezone.utc)
+        
+        if new_job_status in (JobStatus.SUCCESS, JobStatus.DEAD_LETTER):
+            job.finished_at = datetime.now(timezone.utc)
+
+        if increment_retry:
+            job.retry_count += 1
+            
+        if error_message:
+            job.stacktrace = error_message
+            
+        if error_severity and hasattr(job, "error_severity"):
+            job.error_severity = error_severity
+
+        # 2. Zugehöriges Asset im Ledger über asset_path finden und synchronisieren
+        target_path = getattr(job, "asset_path", None)
+        if target_path:
+            asset = await self.get_by_path(target_path)
+            if asset:
+                if new_job_status == JobStatus.SUCCESS:
+                    asset.status = AssetStatus.SYNCED
+                    asset.last_synced_at = datetime.now(timezone.utc)
+                    logger.info("🟢 [Ledger Sync] Asset status auf SYNCED gesetzt für: %s", target_path)
+                elif new_job_status == JobStatus.DEAD_LETTER:
+                    asset.status = AssetStatus.FAILED
+                    logger.warning("🔴 [Ledger Sync] Asset status auf FAILED gesetzt für: %s", target_path)

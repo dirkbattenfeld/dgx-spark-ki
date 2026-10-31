@@ -30,6 +30,23 @@ from pipelines.ingestion_engine.services.reconciler import ReconciliationService
 from pipelines.ingestion_engine.services.scanner import StorageSnapshotScanner
 
 
+async def inspect_database_state(stage_label: str):
+    """Kapselt die Inspektion beider Tabellen für transparente Zwischen- und Endstände."""
+    logger.info("--- [INSPECT] PostgreSQL State Inspection (%s) ---", stage_label)
+    async with async_session_maker() as session:
+        res_assets = await session.execute(select(AssetRecordModel))
+        assets = res_assets.scalars().all()
+        logger.info("📂 ASSET REGISTRY (%d Einträge):", len(assets))
+        for a in assets:
+            logger.info("   - Path: %s | Status: %s", a.file_path, a.status)
+
+        res_jobs = await session.execute(select(IngestionJobModel))
+        jobs = res_jobs.scalars().all()
+        logger.info("⚙️ INGESTION JOBS (%d Einträge):", len(jobs))
+        for j in jobs:
+            logger.info("   - ID: %s | Op: %s | Status: %s", j.job_id, j.operation, j.status)
+
+
 async def run_pipeline_test():
     logger.info("🚀 Starte End-to-End Test für generative Ingestion-Pipeline...")
 
@@ -63,26 +80,16 @@ async def run_pipeline_test():
             reconciler = ReconciliationService(uow=uow, storage_client=storage_client)
             await reconciler.reconcile(snapshots)
 
+    if INSPECT_DATABASE:
+        await inspect_database_state("Post-Reconciliation (Pending Jobs erstellt)")
+
     if RUN_JOB_WORKER:
         logger.info("--- [WORKER] Job Worker Execution (Isolated Transactions) ---")
         worker = JobWorkerService(uow=AsyncUnitOfWork(async_session_maker))
         await worker.run_worker_loop()
         
     if INSPECT_DATABASE:
-        logger.info("--- [INSPECT] PostgreSQL State Inspection ---")
-        async with async_session_maker() as session:
-            res_assets = await session.execute(select(AssetRecordModel))
-            assets = res_assets.scalars().all()
-            logger.info("📂 ASSET REGISTRY (%d Einträge):", len(assets))
-            for a in assets:
-                logger.info("   - Path: %s | Status: %s", a.file_path, a.status)
-
-            res_jobs = await session.execute(select(IngestionJobModel))
-            jobs = res_jobs.scalars().all()
-            logger.info("⚙️ INGESTION JOBS (%d Einträge):", len(jobs))
-            for j in jobs:
-                logger.info("   - ID: %s | Op: %s | Status: %s", j.job_id, j.operation, j.status)
-
+        await inspect_database_state("Post-Worker Execution (Jobs Success & Assets Synced)")
 
 if __name__ == "__main__":
     asyncio.run(run_pipeline_test())

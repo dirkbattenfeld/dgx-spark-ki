@@ -117,9 +117,18 @@ async def effect_analyze_error(context: JobContext, *args, **kwargs):
         logger.warning("⚠️ [Worker Effect] Fehler analysiert und extrahiert: %s", context.error_message)
 
 
-async def effect_persist_job_result(context: JobContext, *args, **kwargs):
-    """Bereitet das persistente Ergebnis vor."""
-    logger.info("💾 [Worker Effect] Persistenz-Schritt vorbereitet für Status: %s", context.new_job_status)
+async def effect_persist_job_result(context: JobContext, uow: AsyncUnitOfWork, *args, **kwargs):
+    """Persistiert den Job-Status und synchronisiert atomar das Asset-Ledger."""
+    job_id = context.job.job_id
+    logger.info("💾 [Worker Effect] Persistiere Job-Ergebnis für ID: %s [Status: %s]", job_id, context.new_job_status)
+    
+    await uow.repo.finalize_job_execution(
+        job_id=job_id,
+        new_job_status=context.new_job_status,
+        increment_retry=context.increment_retry,
+        error_message=context.error_message,
+        error_severity=getattr(context, "error_severity", None)
+    )
 
 
 WORKER_EFFECT_REGISTRY = {

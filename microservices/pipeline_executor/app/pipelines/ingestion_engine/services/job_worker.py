@@ -53,18 +53,17 @@ class JobWorkerService:
 
             # --- STAGE 3: Nur im Fehlerfall: Retry vs. DeadLetter Entscheidung ---
             ctx = DecisionTableRunner.evaluate(ctx, WORKER_STAGE_3_RULES)
-            await EffectExecutionRunner.execute_command(ctx, WORKER_EFFECT_REGISTRY)
 
-            # --- TRANSAKTION B: Ergebnis isoliert persistieren ---
-            async with self.uow as uow:
-                target_job = await uow.session.get(IngestionJobModel, job_id)
-                if target_job:
-                    target_job.status = ctx.new_job_status
-                    if ctx.increment_retry:
-                        target_job.retry_count += 1
-                    if ctx.error_message:
-                        target_job.stacktrace = ctx.error_message
-
+            # --- TRANSAKTION B: Atomare Persistenz (Job-Status + Asset Ledger Sync) ---
+            async with self.uow as persist_uow:
+                await persist_uow.repo.finalize_job_execution(
+                    job_id=job_id,
+                    new_job_status=ctx.new_job_status,
+                    increment_retry=ctx.increment_retry,
+                    error_message=ctx.error_message,
+                    error_severity=getattr(ctx, "error_severity", None)
+                )
+ 
             processed += 1
 
         logger.info("✨ Job Worker Loop beendet. Verarbeitete Jobs: %d", processed)

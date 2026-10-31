@@ -52,6 +52,7 @@ class PipelineCommand(str, Enum):
     DETECT_MOVE = "DETECT_MOVE"
 
 class JobCommand(str, Enum):
+    NONE = "NONE"
     EXECUTE_PAYLOAD = "EXECUTE_PAYLOAD"
     ANALYZE_ERROR = "ANALYZE_ERROR"
     PERSIST_RESULT = "PERSIST_RESULT"

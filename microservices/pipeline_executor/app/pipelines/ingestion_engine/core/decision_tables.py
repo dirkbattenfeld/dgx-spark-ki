@@ -190,7 +190,7 @@ WORKER_STAGE_2_RULES = [
         name="Path_Success",
         conditions=[lambda ctx: ctx.execution_error is None],
         actions={
-            "active_command": JobCommand.PERSIST_RESULT,
+            "active_command": JobCommand.NONE,
             "error_classified": True,
             "error_severity": "none",
             "new_job_status": JobStatus.SUCCESS,
@@ -207,7 +207,7 @@ WORKER_STAGE_3_RULES = [
             lambda ctx: ctx.execution_error is not None and (ctx.job.retry_count + 1) < ctx.job.max_retries
         ],
         actions={
-            "active_command": JobCommand.PERSIST_RESULT,
+            "active_command": JobCommand.NONE,
             "new_job_status": JobStatus.PENDING,
             "increment_retry": True
         }
@@ -218,11 +218,16 @@ WORKER_STAGE_3_RULES = [
             lambda ctx: ctx.execution_error is not None and (ctx.job.retry_count + 1) >= ctx.job.max_retries
         ],
         actions={
-            "active_command": JobCommand.PERSIST_RESULT,
+            "active_command": JobCommand.NONE,
             "new_job_status": JobStatus.DEAD_LETTER,
             "increment_retry": True
         }
     ),
+    DecisionRule(
+        name="Success_PassThrough",
+        conditions=[lambda ctx: ctx.execution_error is None],
+        actions={}
+    )
 ]
 
 
