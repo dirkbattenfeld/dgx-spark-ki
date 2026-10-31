@@ -1,7 +1,7 @@
 # pipeline_executor/app/pipelines/ingestion_engine/db/repository.py
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
@@ -204,3 +204,22 @@ class IngestionRepository:
                 elif new_job_status == JobStatus.DEAD_LETTER:
                     asset.status = AssetStatus.FAILED
                     logger.warning("🔴 [Ledger Sync] Asset status auf FAILED gesetzt für: %s", target_path)
+        
+                    
+    async def prune_jobs(self) -> dict[str, int]:
+        # 1. Success-Jobs sofort löschen (0 Tage Retention)
+        success_stmt = delete(IngestionJobModel).where(IngestionJobModel.status == JobStatus.SUCCESS)
+        success_res = await self.session.execute(success_stmt)
+        
+        # 2. Dead-Letter-Jobs nach 30 Tagen löschen
+        cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
+        dl_stmt = delete(IngestionJobModel).where(
+            IngestionJobModel.status == JobStatus.DEAD_LETTER,
+            IngestionJobModel.updated_at < cutoff_30d
+        )
+        dl_res = await self.session.execute(dl_stmt)
+        
+        return {
+            "pruned_success": success_res.rowcount,
+            "pruned_dead_letter": dl_res.rowcount
+        }

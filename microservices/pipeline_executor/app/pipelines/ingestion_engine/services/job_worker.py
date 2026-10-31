@@ -25,11 +25,15 @@ class JobWorkerService:
 
     async def run_worker_loop(self) -> int:
         logger.info("⚙️ Starte Job Worker Service mit isolierten Transaktionsgrenzen...")
-
-        # --- STARTUP CLEANUP: Verhindert Zombie-Jobs nach Testabbrüchen ---
+            
+        # --- STARTUP HOUSEKEEPING ---
         async with self.uow as cleanup_uow:
-            rowcount = await cleanup_uow.repo.reset_running_jobs_to_pending()
-            logger.info("🧹 Startup Cleanup: %d hängengebliebene RUNNING-Jobs auf PENDING zurückgesetzt.", rowcount)
+            zombie_count = await cleanup_uow.repo.reset_running_jobs_to_pending()
+            pruned = await cleanup_uow.repo.prune_jobs()
+            logger.info(
+                "🧹 Startup Housekeeping: %d Zombie-Jobs zurückgesetzt | Pruned: %d Success, %d Dead-Letter.",
+                zombie_count, pruned["pruned_success"], pruned["pruned_dead_letter"]
+            )
 
         processed = 0
 
