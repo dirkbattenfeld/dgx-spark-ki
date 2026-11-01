@@ -101,6 +101,14 @@ class IngestionRepository:
                         status=AssetStatus.PENDING
                     )
                     self.session.add(asset)
+            
+            elif action == "update_mtime":
+                path = mut["file_path"]
+                existing = existing_map.get(path)
+                if existing:
+                    existing.last_seen_mtime = mut["mtime"]
+                    existing.status = AssetStatus.SYNCED
+                    
             elif action == "move":
                 await self.update_asset_path(mut["old_path"], mut["new_path"])
             elif action == "delete":

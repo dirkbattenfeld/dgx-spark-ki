@@ -67,6 +67,9 @@ async def run_pipeline_test():
 
     snapshots = []
 
+    if INSPECT_DATABASE:
+        await inspect_database_state("DB: Start des Skripts")
+    
     if RUN_SCANNER:
         logger.info("--- [SCAN] Snapshot-Scan ---")
         scanner = StorageSnapshotScanner(config=pipeline_config, storage_client=storage_client)
@@ -81,7 +84,7 @@ async def run_pipeline_test():
             await reconciler.reconcile(snapshots)
 
     if INSPECT_DATABASE:
-        await inspect_database_state("Post-Reconciliation (Pending Jobs erstellt)")
+        await inspect_database_state("DB: Post-Reconciliation (Pending Jobs erstellt)")
 
     if RUN_JOB_WORKER:
         logger.info("--- [WORKER] Job Worker Execution (Isolated Transactions) ---")
@@ -89,7 +92,7 @@ async def run_pipeline_test():
         await worker.run_worker_loop()
         
     if INSPECT_DATABASE:
-        await inspect_database_state("Post-Worker Execution (Jobs Success & Assets Synced)")
+        await inspect_database_state("DB: Post-Worker Execution (Jobs Success & Assets Synced)")
 
 if __name__ == "__main__":
     asyncio.run(run_pipeline_test())
