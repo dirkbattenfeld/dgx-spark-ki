@@ -164,7 +164,7 @@ STAGE_3_RULES = [
 WORKER_STAGE_1_RULES = [
     DecisionRule(
         name="TriggerPayloadExecution",
-        conditions=[lambda ctx: ctx.job.status == JobStatus.PENDING and ctx.execution_error is None],
+        conditions=[lambda ctx: ctx.job.status == JobStatus.RUNNING and ctx.execution_error is None],
         actions={"active_command": JobCommand.EXECUTE_PAYLOAD}
     )
 ]

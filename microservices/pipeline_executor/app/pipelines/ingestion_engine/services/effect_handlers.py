@@ -10,6 +10,7 @@ from pipelines.ingestion_engine.core.models import (
     AssetContext,
     JobCommand,
     JobContext,
+    JobStatus,
     PipelineCommand,
 )
 from pipelines.ingestion_engine.db.uow import AsyncUnitOfWork
@@ -63,7 +64,7 @@ async def mock_delete_job_payload(context: JobContext, *args, **kwargs):
     logger.info("🧹 [Job Mock Shell] Qdrant: Lösche Vektoren für Job ID: %s", job_id)
     # Späterer echter Code hier:
     # await qdrant_client.delete(collection_name=..., points_selector=...)
-    context.new_job_status = JobStatus.SUCCESS
+    context.execution_error = RuntimeError("Simulierter Fehler des Mock")
 
 
 async def mock_create_job_payload(context: JobContext, *args, **kwargs):
@@ -74,7 +75,7 @@ async def mock_create_job_payload(context: JobContext, *args, **kwargs):
     # parsed_doc = await docling_parser.parse(...)
     # vectors = await embedding_generator.generate(...)
     # await qdrant_client.upsert(...)
-    context.new_job_status = JobStatus.SUCCESS
+    context.execution_error = RuntimeError("Simulierter Fehler des Mock")
 
 
 async def effect_execute_job_payload(context: JobContext, *args, **kwargs):

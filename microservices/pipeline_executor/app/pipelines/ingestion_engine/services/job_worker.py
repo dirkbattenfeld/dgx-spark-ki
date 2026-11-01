@@ -46,7 +46,7 @@ class JobWorkerService:
                 job_id = job.job_id
 
             ctx = JobContext(job=job)
-
+            
             # --- STAGE 1: Payload ausführen ---
             ctx = DecisionTableRunner.evaluate(ctx, WORKER_STAGE_1_RULES)
             await EffectExecutionRunner.execute_command(ctx, WORKER_EFFECT_REGISTRY)
