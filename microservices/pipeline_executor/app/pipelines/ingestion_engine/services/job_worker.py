@@ -9,7 +9,6 @@ from pipelines.ingestion_engine.core.decision_tables import (
     DecisionTableRunner,
 )
 from pipelines.ingestion_engine.core.models import JobContext
-from pipelines.ingestion_engine.db.models import IngestionJobModel
 from pipelines.ingestion_engine.db.uow import AsyncUnitOfWork
 from pipelines.ingestion_engine.services.effect_handlers import (
     WORKER_EFFECT_REGISTRY,
@@ -26,15 +25,14 @@ class JobWorkerService:
     async def run_worker_loop(self) -> int:
         logger.info("⚙️ Starte Job Worker Service mit isolierten Transaktionsgrenzen...")
             
-        # --- STARTUP HOUSEKEEPING ---
+        # --- WORKER-RESTART HOUSEKEEPING (Nur Zombie-Handling) ---
         async with self.uow as cleanup_uow:
-            zombie_count = await cleanup_uow.repo.reset_running_jobs_to_pending()
-            pruned = await cleanup_uow.repo.prune_jobs()
+            stats = await cleanup_uow.repo.worker_resume_housekeeping()
             logger.info(
-                "🧹 Startup Housekeeping: %d Zombie-Jobs zurückgesetzt | Pruned: %d Success, %d Dead-Letter.",
-                zombie_count, pruned["pruned_success"], pruned["pruned_dead_letter"]
+                "🧹 Worker Housekeeping: %d Zombie-Jobs zu Pending zurückgesetzt | %d ins Dead-Letter verschoben.",
+                stats["zombies_reset_to_pending"], stats["zombies_moved_to_dead_letter"]
             )
-
+        
         processed = 0
 
         while True:

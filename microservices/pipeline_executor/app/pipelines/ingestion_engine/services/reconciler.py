@@ -35,6 +35,17 @@ class ReconciliationService:
     async def reconcile(self, snapshots: List[FileSnapshot]) -> int:
         logger.info("🔄 Starte Chunked Reconciler (Batchgröße: %d, Total Snapshots: %d)", self.batch_size, len(snapshots))
         
+        # --- ENGINE-START HOUSEKEEPING (Tabula Rasa & Pruning) ---
+        async with self.uow as cleanup_uow:
+            stats = await cleanup_uow.repo.reconciler_startup_housekeeping(
+                success_retention_days=1, 
+                dead_letter_retention_days=30
+            )
+            logger.info(
+                "🧹 Reconciler Startup Housekeeping: %d aktive Jobs gelöscht | %d Success geprunt | %d Dead-Letter geprunt.",
+                stats["deleted_active_jobs"], stats["pruned_success_jobs"], stats["pruned_dead_letter_jobs"]
+            )
+                
         snapshot_map = {str(s.path): s for s in snapshots}
 
         async with self.uow as uow:

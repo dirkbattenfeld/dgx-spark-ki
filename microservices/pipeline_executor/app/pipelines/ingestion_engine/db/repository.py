@@ -199,18 +199,78 @@ class IngestionRepository:
 
         await self.session.flush()
 
-    async def prune_jobs(self) -> dict[str, int]:
-        success_stmt = delete(IngestionJobModel).where(IngestionJobModel.status == JobStatus.SUCCESS)
-        success_res = await self.session.execute(success_stmt)
+    
+    async def reconciler_startup_housekeeping(
+        self, 
+        success_retention_days: int = 1, 
+        dead_letter_retention_days: int = 30
+    ) -> dict[str, int]:
+        """Tabula-Rasa-Putsch beim Engine-Start mit konfigurierbarem Pruning."""
         
-        cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
-        dl_stmt = delete(IngestionJobModel).where(
-            IngestionJobModel.status == JobStatus.DEAD_LETTER,
-            IngestionJobModel.updated_at < cutoff_30d
+        # 1. Lösche alle aktiven und fehlgeschlagenen Reste aus vorherigen Läufen
+        active_delete_stmt = delete(IngestionJobModel).where(
+            IngestionJobModel.status.in_([
+                JobStatus.PENDING,
+                JobStatus.RUNNING,
+                JobStatus.FAILED
+            ])
         )
-        dl_res = await self.session.execute(dl_stmt)
+        active_res = await self.session.execute(active_delete_stmt)
+
+        # 2. Prune von SUCCESS-Jobs (z. B. nach 1 Tag, für Observability)
+        cutoff_success = datetime.now(timezone.utc) - timedelta(days=success_retention_days)
+        success_delete_stmt = delete(IngestionJobModel).where(
+            IngestionJobModel.status == JobStatus.SUCCESS,
+            IngestionJobModel.updated_at < cutoff_success
+        )
+        success_res = await self.session.execute(success_delete_stmt)
+
+        # 3. Prune alter DEAD_LETTER-Jobs (z. B. nach 30 Tagen)
+        cutoff_deadletter = datetime.now(timezone.utc) - timedelta(days=dead_letter_retention_days)
+        dl_delete_stmt = delete(IngestionJobModel).where(
+            IngestionJobModel.status == JobStatus.DEAD_LETTER,
+            IngestionJobModel.updated_at < cutoff_deadletter
+        )
+        dl_res = await self.session.execute(dl_delete_stmt)
+
+        await self.session.flush()
+
+        return {
+            "deleted_active_jobs": active_res.rowcount,
+            "pruned_success_jobs": success_res.rowcount,
+            "pruned_dead_letter_jobs": dl_res.rowcount
+        }
+
+
+    async def worker_resume_housekeeping(self, max_retries: int = 3) -> dict[str, int]:
+        """Sicheres Zombie-Handling bei Worker-Neustart ohne Bestrafung von Crashs."""
+        stmt = select(IngestionJobModel).where(IngestionJobModel.status == JobStatus.RUNNING)
+        result = await self.session.execute(stmt)
+        running_zombies = result.scalars().all()
+
+        reset_count = 0
+        dead_letter_count = 0
+
+        for job in running_zombies:
+            # Wenn das Limit nicht überschrieben ist, bekommt der Crash einen neuen Versuch 
+            # OHNE den retry_count zu erhöhen (da Systemcrash != fachlicher Fehler).
+            if job.retry_count < max_retries:
+                job.status = JobStatus.PENDING  # Zurück in die Queue!
+                # job.retry_count bleibt HIER unberührt, da es ein Infrastruktur-Crash war!
+                job.updated_at = datetime.now(timezone.utc)
+                job.stacktrace = "Worker-Restart: Job lief bei Systemcrash (Zombie) und wird neutral neu eingereiht."
+                reset_count += 1
+            else:
+                # Absolute Sicherheitsgrenze bei wiederholten Totalabstürzen
+                job.status = JobStatus.DEAD_LETTER
+                job.updated_at = datetime.now(timezone.utc)
+                job.stacktrace = "Worker-Restart: Maximale Retries nach wiederholten Crashs überschritten."
+                dead_letter_count += 1
+
+        await self.session.flush()
         
         return {
-            "pruned_success": success_res.rowcount,
-            "pruned_dead_letter": dl_res.rowcount
+            "zombies_reset_to_pending": reset_count,
+            "zombies_moved_to_dead_letter": dead_letter_count
         }
+
