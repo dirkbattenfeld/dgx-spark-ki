@@ -57,6 +57,7 @@ PIPELINE_EFFECT_REGISTRY = {
 
 # Effects für Job_Worker
 # --- MOCK-KOMPONENTEN FÜR DIE JOB-PAYLOADS ---
+import random
 
 async def mock_delete_job_payload(context: JobContext, *args, **kwargs):
     """Mock für Qdrant Vektor-Löschung bei DELETE-Jobs."""
@@ -64,8 +65,11 @@ async def mock_delete_job_payload(context: JobContext, *args, **kwargs):
     logger.info("🧹 [Job Mock Shell] Qdrant: Lösche Vektoren für Job ID: %s", job_id)
     # Späterer echter Code hier:
     # await qdrant_client.delete(collection_name=..., points_selector=...)
-    context.execution_error = RuntimeError("Simulierter Fehler des Mock")
-
+    context.execution_error = (
+        RuntimeError("Simulierter Fehler des Mock")
+        if random.random() < 0.5
+        else None
+    )
 
 async def mock_create_job_payload(context: JobContext, *args, **kwargs):
     """Mock für Ingestion-Pipeline (Docling, Embedding, Qdrant Upsert) bei CREATE/UPDATE-Jobs."""
@@ -75,8 +79,11 @@ async def mock_create_job_payload(context: JobContext, *args, **kwargs):
     # parsed_doc = await docling_parser.parse(...)
     # vectors = await embedding_generator.generate(...)
     # await qdrant_client.upsert(...)
-    context.execution_error = RuntimeError("Simulierter Fehler des Mock")
-
+    context.execution_error = (
+        RuntimeError("Simulierter Fehler des Mock")
+        if random.random() < 0.5
+        else None
+    )
 
 async def effect_execute_job_payload(context: JobContext, *args, **kwargs):
     """Dispatcher-Weiche für Job-Payloads (DELETE vs. CREATE/INDEX)."""
