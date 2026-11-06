@@ -2,13 +2,18 @@
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
-from uuid import uuid4
+from typing import List, Optional
+from uuid import UUID, uuid4
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pipelines.ingestion_engine.core.models import AssetStatus, JobStatus, OperationType
+from pipelines.ingestion_engine.core.models import (
+    AssetStatus, 
+    JobStatus, 
+    LedgerFieldDelta,
+    JobFieldDelta,
+)
 from pipelines.ingestion_engine.db.models import AssetRecordModel, IngestionJobModel
 
 logger = logging.getLogger(__name__)
@@ -18,13 +23,7 @@ class IngestionRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-# Asset Registry Ledger Operations im Reconciler
-    async def get_by_hash(self, file_hash: str) -> Optional[AssetRecordModel]:
-        result = await self.session.execute(
-            select(AssetRecordModel).where(AssetRecordModel.last_seen_hash == file_hash)
-        )
-        return result.scalars().first()
-
+    # --- BASIS LOOKUPS ---
     async def get_by_path(self, file_path: str) -> Optional[AssetRecordModel]:
         result = await self.session.execute(
             select(AssetRecordModel).where(AssetRecordModel.file_path == file_path)
@@ -45,99 +44,78 @@ class IngestionRepository:
         )
         return list(result.scalars().all())
 
-    async def update_asset_path(self, old_path: str, new_path: str) -> None:
-        stmt = (
-            update(AssetRecordModel)
-            .where(AssetRecordModel.file_path == old_path)
-            .values(file_path=new_path, updated_at=datetime.now(timezone.utc))
-        )
-        await self.session.execute(stmt)
 
-    async def mark_asset_deleted(self, file_path: str) -> None:
-        stmt = (
-            update(AssetRecordModel)
-            .where(AssetRecordModel.file_path == file_path)
-            .values(status=AssetStatus.DELETED, deleted_at=datetime.now(timezone.utc))
-        )
-        await self.session.execute(stmt)
-
-
-# LEDGER UND JobList: Ein Batch von Ergebnissen im Reconciler in den Ledger und die JobList persistieren
+    # --- PHASE 2: DER REINER CRUD-DELTA-INTERPRETER ---
     async def bulk_persist_chunk(
         self, 
-        ledger_mutations: List[Dict[str, Any]], 
-        job_mutations: List[Dict[str, Any]], 
-        vector_operations: List[Dict[str, Any]]
+        ledger_mutations: List[LedgerFieldDelta], 
+        job_mutations: List[JobFieldDelta], 
+        vector_operations: List[dict]
     ) -> None:
-        """Echtes Batching: Vorab-Laden vorhandener Assets, um N+1-Query-Probleme zu verhindern."""
+        """Reiner, mechanischer Interpreter für Ledger- und Job-Deltas ohne jegliche Fachlogik."""
         
-        # 1. Vorab-Laden aller relevanten Upsert-Pfade in einem einzigen .in_()-Query
-        upsert_paths = [mut["file_path"] for mut in ledger_mutations if mut.get("action") == "upsert"]
-        existing_assets = await self.get_assets_by_paths(upsert_paths)
-        existing_map = {a.file_path: a for a in existing_assets}
+        if not ledger_mutations and not job_mutations and not vector_operations:
+            return
 
-        # 2. Ledger-Mutationen abarbeiten
+        # 1. Vorab-Laden aller relevanten Pfade zur Vermeidung von N+1-Queries
+        all_paths = [mut.file_path for mut in ledger_mutations if mut]
+        existing_assets = await self.get_assets_by_paths(all_paths)
+        existing_map = {str(a.file_path): a for a in existing_assets}
+
+        # 2. Ledger-Deltas starr nach Primitiven abarbeiten (Weg A: Strikte Invarianten)
         for mut in ledger_mutations:
-            if not mut:  # Überspringe None-Mutationen (z.B. bei SKIP)
+            if not mut:
                 continue
-            action = mut.get("action")
-            if action == "upsert":
-                path = mut["file_path"]
-                file_hash = mut.get("hash")
-                if not file_hash:
-                    continue  # Niemals ohne Hash upserten!
-                                
-                existing = existing_map.get(path)
-                if existing:
-                    existing.last_seen_hash = mut["hash"]
-                    existing.last_seen_mtime = mut["mtime"]
-                    existing.status = AssetStatus.PENDING
-                    existing.deleted_at = None
-                else:
+            
+            path = mut.file_path
+            existing = existing_map.get(path)
+
+            match mut.operation:
+                case "insert":
+                    if existing:
+                        raise ValueError(f"Invarianten-Verletzung: Kann Asset {path} nicht einfügen, da es bereits existiert.")
+                    
                     asset = AssetRecordModel(
                         file_path=path,
-                        last_seen_hash=mut["hash"],
-                        last_seen_mtime=mut["mtime"],
-                        status=AssetStatus.PENDING
+                        last_success_hash=mut.last_success_hash or "",
+                        last_success_mtime=mut.last_success_mtime or datetime.now(timezone.utc),
+                        status=mut.status or AssetStatus.PENDING
                     )
                     self.session.add(asset)
-            
-            elif action == "update_mtime":
-                path = mut["file_path"]
-                existing = existing_map.get(path)
-                if existing:
-                    existing.last_seen_mtime = mut["mtime"]
-                    existing.status = AssetStatus.SYNCED
-                    
-            elif action == "move":
-                await self.update_asset_path(mut["old_path"], mut["new_path"])
-            elif action == "delete":
-                await self.mark_asset_deleted(mut["file_path"])
-            elif action == "cancel_pending":  
-                path = mut["file_path"]
-                # 1. Hängende Pending-Jobs für diesen Pfad löschen
-                await self.session.execute(
-                    delete(IngestionJobModel).where(
-                        IngestionJobModel.asset_path == path,
-                        IngestionJobModel.status == JobStatus.PENDING
-                    )
-                )
-                # 2. Un-synced Ledger-Eintrag komplett entfernen (da nie in Cloud/Vektorspeicher)
-                existing = existing_map.get(path) or await self.get_by_path(path)
-                if existing:
-                    await self.session.delete(existing)
+                    existing_map[path] = asset
 
-        # 3. Job-Mutationen mit sicherer uuid4() generieren
+                case "update_strict":
+                    if not existing:
+                        raise ValueError(f"Invarianten-Verletzung: Kann Asset {path} nicht aktualisieren, da es nicht existiert.")
+                    
+                    # Wende NUR die im Delta explizit gesetzten Felder an
+                    if mut.status is not None: existing.status = mut.status
+                    if mut.last_success_hash is not None: existing.last_success_hash = mut.last_success_hash
+                    if mut.last_success_mtime is not None: existing.last_success_mtime = mut.last_success_mtime
+                    if mut.last_error is not None: existing.last_error = mut.last_error
+
+                case "delete":
+                    if existing:
+                        await self.session.delete(existing)
+
+        # 3. Job-Deltas starr nach Primitiven abarbeiten
         for j_mut in job_mutations:
-            job = IngestionJobModel(
-                job_id=uuid4(),
-                asset_path=j_mut["asset_path"],
-                original_path=j_mut["asset_path"],
-                cloud_path=j_mut["cloud_path"],
-                operation=OperationType(j_mut["operation"]),
-                status=JobStatus.PENDING
-            )
-            self.session.add(job)
+            match j_mut.delta_operation:
+                case "insert":
+                    job = IngestionJobModel(
+                        job_id=j_mut.job_id or uuid4(),
+                        asset_path=j_mut.asset_path,
+                        original_path=str(j_mut.original_path),
+                        cloud_path=j_mut.cloud_path,
+                        operation=j_mut.operation,
+                        status=j_mut.status or JobStatus.PENDING,
+                        retry_count=j_mut.retry_count or 0
+                    )
+                    self.session.add(job)
+                case "delete":
+                    await self.session.execute(
+                        delete(IngestionJobModel).where(IngestionJobModel.asset_path == j_mut.asset_path)
+                    )
 
         # 4. Vector-Operationen (Stub / Logging)
         for v_op in vector_operations:
@@ -145,7 +123,9 @@ class IngestionRepository:
 
         await self.session.flush()
 
-# JobList Operations
+
+    # --- JOB WORKER INTERPRETER ---
+
     async def fetch_next_pending_job_with_skip_locked(self) -> Optional[IngestionJobModel]:
         stmt = (
             select(IngestionJobModel)
@@ -162,7 +142,6 @@ class IngestionRepository:
         return job
 
     async def reset_running_jobs_to_pending(self) -> int:
-        """Setzt hängengebliebene RUNNING-Jobs beim Startup auf PENDING zurück und gibt die Anzahl zurück."""
         stmt = (
             update(IngestionJobModel)
             .where(IngestionJobModel.status == JobStatus.RUNNING)
@@ -171,16 +150,18 @@ class IngestionRepository:
         result = await self.session.execute(stmt)
         return result.rowcount
 
-
-    async def finalize_job_execution(
-        self, 
-        job_id: str, 
-        new_job_status: JobStatus, 
-        increment_retry: bool, 
-        error_message: str | None,
-        error_severity: str | None = None
-    ):
-        # 1. Job holen und Status updaten (Dein robuster Original-Code)
+    async def apply_job_and_ledger_mutation(
+        self,
+        job_id: UUID,
+        new_job_status: JobStatus,
+        increment_retry: bool,
+        error_message: Optional[str],
+        error_severity: Optional[str],
+        ledger_mutation: Optional[LedgerFieldDelta]
+    ) -> None:
+        """Dummer Interpreter für Worker-Ergebnisse und optionale Ledger-Deltas."""
+        
+        # 1. Job aktualisieren
         job = await self.session.get(IngestionJobModel, job_id)
         if not job:
             return
@@ -200,41 +181,28 @@ class IngestionRepository:
         if error_severity and hasattr(job, "error_severity"):
             job.error_severity = error_severity
 
-        # 2. Zugehöriges Asset im Ledger synchronisieren (Mit Operation-Weiche)
-        target_path = getattr(job, "asset_path", None)
-        job_operation = getattr(job, "operation", None)
-
-        if target_path:
-            if new_job_status == JobStatus.SUCCESS:
-                # KORREKTUR: Unterscheidung zwischen DELETE und CREATE/UPDATE-Jobs
-                if job_operation == OperationType.DELETE:
-                    # Bei erfolgreichem Delete-Job: Asset aus dem Ledger entfernen, 
-                    # damit es nicht fälschlicherweise als SYNCED reaktiviert wird!
-                    asset = await self.get_by_path(target_path)
+        # 2. Optionales Ledger-Delta rein primitiv anwenden
+        if ledger_mutation:
+            asset = await self.get_by_path(ledger_mutation.file_path)
+            
+            match ledger_mutation.operation:
+                case "delete":
                     if asset:
                         await self.session.delete(asset)
-                        logger.info("🗑️ [Ledger Sync] Asset erfolgreich aus Ledger entfernt für gelöschten Pfad: %s", target_path)
-                else:
-                    # Standard für CREATE / UPDATE: Auf SYNCED setzen
-                    asset = await self.get_by_path(target_path)
-                    if asset:
-                        asset.status = AssetStatus.SYNCED
-                        asset.last_synced_at = datetime.now(timezone.utc)
-                        logger.info("🟢 [Ledger Sync] Asset status auf SYNCED gesetzt für: %s", target_path)
-                        
-            elif new_job_status == JobStatus.DEAD_LETTER:
-                asset = await self.get_by_path(target_path)
-                if asset:
-                    asset.status = AssetStatus.FAILED
-                    logger.warning("🔴 [Ledger Sync] Asset status auf FAILED gesetzt für: %s", target_path)
-   
-                    
+                case "update_strict":
+                    if not asset:
+                        raise ValueError(f"Worker-Invarianten-Fehler: Asset {ledger_mutation.file_path} existiert nicht.")
+                    if ledger_mutation.status is not None: asset.status = ledger_mutation.status
+                    if ledger_mutation.last_success_hash is not None: asset.last_success_hash = ledger_mutation.last_success_hash
+                    if ledger_mutation.last_success_mtime is not None: asset.last_success_mtime = ledger_mutation.last_success_mtime
+                    if ledger_mutation.last_error is not None: asset.last_error = ledger_mutation.last_error
+
+        await self.session.flush()
+
     async def prune_jobs(self) -> dict[str, int]:
-        # 1. Success-Jobs sofort löschen (0 Tage Retention)
         success_stmt = delete(IngestionJobModel).where(IngestionJobModel.status == JobStatus.SUCCESS)
         success_res = await self.session.execute(success_stmt)
         
-        # 2. Dead-Letter-Jobs nach 30 Tagen löschen
         cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
         dl_stmt = delete(IngestionJobModel).where(
             IngestionJobModel.status == JobStatus.DEAD_LETTER,

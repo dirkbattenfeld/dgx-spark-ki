@@ -4,11 +4,13 @@ import logging
 from typing import Any, Callable, Dict, List
 
 from pipelines.ingestion_engine.core.models import (
-    AssetContext,
     AssetStatus,
     DiffStatus,
     JobCommand,
+    JobFieldDelta,
     JobStatus,
+    LedgerFieldDelta,
+    OperationType,
     PipelineCommand,
     PlannedAction,
 )
@@ -50,7 +52,7 @@ class DecisionTableRunner:
 STAGE_1_RULES = [
     DecisionRule(
         name="PathAndMtimeUnchanged",
-        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is not None and ctx.snapshot_item.mtime == ctx.ledger_record.last_seen_mtime],
+        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is not None and ctx.snapshot_item.mtime == ctx.ledger_record.last_success_mtime],
         actions={"active_command": PipelineCommand.NONE, "diff_status": DiffStatus.UNCHANGED, "planned_action": PlannedAction.SKIP}
     ),
     DecisionRule(
@@ -81,7 +83,7 @@ STAGE_2_RULES = [
         # BEGRÜNDUNG: Der Zeitstempel (mtime) hat sich zwar geändert, aber der berechnete Hash 
         # ist identisch mit dem Ledger-Hash. Das fängt False Alarms (z. B. durch Backups oder Kopiervorgänge) 
         # ab und verhindert unnötiges Re-Parsing. Führt nur ein mtime-Update aus (SYNCED).
-        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is not None and ctx.snapshot_item.file_hash == ctx.ledger_record.last_seen_hash],
+        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is not None and ctx.snapshot_item.file_hash == ctx.ledger_record.last_success_hash],
         actions={"diff_status": DiffStatus.UNCHANGED, "planned_action": PlannedAction.SYNCED}
     ),
     DecisionRule(
@@ -95,7 +97,7 @@ STAGE_2_RULES = [
         name="FileIsModifiedInPlace",
         # BEGRÜNDUNG: Die Datei existiert im Ledger, aber der Hash weicht ab (Inhalt wurde tatsächlich editiert) 
         # -> Volles Neu-Indexieren (INDEX_FULL / Update).
-        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is not None and ctx.snapshot_item.file_hash != ctx.ledger_record.last_seen_hash],
+        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is not None and ctx.snapshot_item.file_hash != ctx.ledger_record.last_success_hash],
         actions={"diff_status": DiffStatus.MODIFIED, "planned_action": PlannedAction.INDEX_FULL}
     ),
     DecisionRule(
@@ -108,23 +110,64 @@ STAGE_2_RULES = [
 
 STAGE_3_RULES = [
     DecisionRule(
-        name="PrepFullIndex",
-        # Greift nur, wenn ein gültiger Hash vorliegt (Neu oder Modifiziert)
+        name="PrepFullIndexNew",
         conditions=[
-            lambda ctx: ctx.planned_action == PlannedAction.INDEX_FULL and ctx.snapshot_item is not None and ctx.snapshot_item.file_hash is not None
+            lambda ctx: ctx.planned_action == PlannedAction.INDEX_FULL and ctx.ledger_record is None and ctx.snapshot_item is not None and ctx.snapshot_item.file_hash is not None
         ],
         actions={
-            "ledger_mutation": lambda ctx: {"action": "upsert", "file_path": ctx.path, "hash": ctx.snapshot_item.file_hash, "mtime": ctx.snapshot_item.mtime},
-            "job_mutation": lambda ctx: {"operation": "create", "asset_path": ctx.path, "cloud_path": f"s3://staging/{ctx.path}"}
+            "ledger_mutation": lambda ctx: LedgerFieldDelta(
+                file_path=str(ctx.path),
+                operation="insert",
+                status=AssetStatus.PENDING,
+                last_success_hash=ctx.snapshot_item.file_hash,
+                last_success_mtime=ctx.snapshot_item.mtime
+            ),
+            "job_mutation": lambda ctx: JobFieldDelta(
+                asset_path=str(ctx.path),
+                original_path=ctx.snapshot_item.path,
+                cloud_path=f"s3://staging/{ctx.path}",
+                operation=OperationType.CREATE,
+                delta_operation="insert",
+                status=JobStatus.PENDING,
+                target_hash=ctx.snapshot_item.file_hash,
+                target_mtime=ctx.snapshot_item.mtime
+            )
+        }
+    ),
+    DecisionRule(
+        name="PrepFullIndexModified",
+        # PHASE 4 INVARIANTE: Hier wird NUR der Status auf PENDING gesetzt. Hash und Mtime bleiben im Ledger unangetastet!
+        conditions=[
+            lambda ctx: ctx.planned_action == PlannedAction.INDEX_FULL and ctx.ledger_record is not None and ctx.snapshot_item is not None and ctx.snapshot_item.file_hash is not None
+        ],
+        actions={
+            "ledger_mutation": lambda ctx: LedgerFieldDelta(
+                file_path=str(ctx.path),
+                operation="update_strict",
+                status=AssetStatus.PENDING 
+            ),
+            "job_mutation": lambda ctx: JobFieldDelta(
+                asset_path=str(ctx.path),
+                original_path=ctx.snapshot_item.path,
+                cloud_path=f"s3://staging/{ctx.path}",
+                operation=OperationType.UPDATE,
+                delta_operation="insert",
+                status=JobStatus.PENDING,
+                target_hash=ctx.snapshot_item.file_hash,
+                target_mtime=ctx.snapshot_item.mtime
+            )
         }
     ),
     DecisionRule(
         name="PrepSynced",
-        # BEGRÜNDUNG: Aktualisiert bei inhaltsgleichen Dateien (False Alarm) lediglich den mtime-Zeitstempel 
-        # im Ledger. Es werden keine Jobs oder Vektor-Operationen generiert.
         conditions=[lambda ctx: ctx.planned_action == PlannedAction.SYNCED and ctx.snapshot_item is not None],
         actions={
-            "ledger_mutation": lambda ctx: {"action": "update_mtime", "file_path": ctx.path, "mtime": ctx.snapshot_item.mtime},
+            "ledger_mutation": lambda ctx: LedgerFieldDelta(
+                file_path=str(ctx.path),
+                operation="update_strict",
+                status=AssetStatus.SYNCED,
+                last_success_mtime=ctx.snapshot_item.mtime
+            ),
             "job_mutation": None,
             "vector_operation": None
         }
@@ -133,9 +176,19 @@ STAGE_3_RULES = [
         name="PrepDeletion",
         conditions=[lambda ctx: ctx.planned_action == PlannedAction.REMOVE_VECTORS],
         actions={
-            "ledger_mutation": lambda ctx: {"action": "delete", "file_path": ctx.path},
+            "ledger_mutation": lambda ctx: LedgerFieldDelta(
+                file_path=str(ctx.path),
+                operation="delete"
+            ),
             "vector_operation": lambda ctx: {"action": "delete_by_path", "path": ctx.path},
-            "job_mutation": lambda ctx: {"operation": "delete", "asset_path": ctx.path, "cloud_path": ""}
+            "job_mutation": lambda ctx: JobFieldDelta(
+                asset_path=str(ctx.path),
+                original_path=Path(ctx.path),
+                cloud_path="",
+                operation=OperationType.DELETE,
+                delta_operation="insert",
+                status=JobStatus.PENDING
+            )
         }
     ),
     DecisionRule(
@@ -151,8 +204,17 @@ STAGE_3_RULES = [
         name="PrepCancelPendingCreate",
         conditions=[lambda ctx: ctx.planned_action == PlannedAction.CANCEL_PENDING_CREATE],
         actions={
-            "ledger_mutation": lambda ctx: {"action": "cancel_pending", "file_path": ctx.path},
-            "job_mutation": None,
+            "ledger_mutation": lambda ctx: LedgerFieldDelta(
+                file_path=str(ctx.path),
+                operation="delete"
+            ),
+            "job_mutation": lambda ctx: JobFieldDelta(
+                asset_path=str(ctx.path),
+                original_path=Path(ctx.path),
+                cloud_path="",
+                operation=OperationType.DELETE,
+                delta_operation="delete"  # Löscht die Pending-Jobs über das Repo
+            ),
             "vector_operation": None
         }
     ),
@@ -171,7 +233,6 @@ WORKER_STAGE_1_RULES = [
 
 # STAGE 2: Post-Execution Weiche (Fehler-Analyse ODER direkter Erfolg)
 WORKER_STAGE_2_RULES = [
-    # Wenn ein Fehler aufgetreten ist -> Fehler analysieren
     DecisionRule(
         name="Path_HasError",
         conditions=[lambda ctx: ctx.execution_error is not None],
@@ -181,7 +242,6 @@ WORKER_STAGE_2_RULES = [
             "error_severity": "error"
         }
     ),
-    # Wenn KEIN Fehler aufgetreten ist -> Direkt auf Erfolg stellen (Keine Analyse!)
     DecisionRule(
         name="Path_Success",
         conditions=[lambda ctx: ctx.execution_error is None],
@@ -190,7 +250,19 @@ WORKER_STAGE_2_RULES = [
             "error_classified": True,
             "error_severity": "none",
             "new_job_status": JobStatus.SUCCESS,
-            "increment_retry": False
+            "increment_retry": False,
+            # ERST HIER SCHREIBEN WIR MTIME UND HASH IN DEN LEDGER!
+            "ledger_mutation": lambda ctx: LedgerFieldDelta(
+                file_path=ctx.job.asset_path,
+                operation="update_strict",
+                status=AssetStatus.SYNCED,
+                last_success_hash=ctx.job.target_hash,
+                last_success_mtime=ctx.job.target_mtime
+            ) if ctx.job.target_hash else LedgerFieldDelta(
+                file_path=ctx.job.asset_path,
+                operation="update_strict",
+                status=AssetStatus.SYNCED
+            )
         }
     ),
 ]

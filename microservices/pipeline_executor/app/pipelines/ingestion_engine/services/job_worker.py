@@ -60,12 +60,13 @@ class JobWorkerService:
 
             # --- TRANSAKTION B: Atomare Persistenz (Job-Status + Asset Ledger Sync) ---
             async with self.uow as persist_uow:
-                await persist_uow.repo.finalize_job_execution(
+                await persist_uow.repo.apply_job_and_ledger_mutation(
                     job_id=job_id,
                     new_job_status=ctx.new_job_status,
                     increment_retry=ctx.increment_retry,
                     error_message=ctx.error_message,
-                    error_severity=getattr(ctx, "error_severity", None)
+                    error_severity=getattr(ctx, "error_severity", None),
+                    ledger_mutation=ctx.ledger_mutation  # <-- Das vom Worker-Decision-Table erzeugte Delta!
                 )
  
             processed += 1

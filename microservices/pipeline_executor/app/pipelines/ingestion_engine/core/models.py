@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -98,8 +98,8 @@ class FileSnapshot(BaseModel):
 
 class AssetRecord(BaseModel):
     file_path: Path = Field(..., description="Eindeutiger Primärschlüssel (Dateipfad)")
-    last_seen_hash: str = Field(..., description="Letzter bekannter Inhalts-Hash")
-    last_seen_mtime: datetime = Field(..., description="Letzte bekannte Modifikationszeit")
+    last_success_hash: str = Field(..., description="Letzter bekannter Inhalts-Hash")
+    last_success_mtime: datetime = Field(..., description="Letzte bekannte Modifikationszeit")
     status: AssetStatus = Field(default=AssetStatus.PENDING, description="Aktueller Verarbeitungsstatus des Assets")
     last_error: Optional[str] = Field(None, description="Letzter Stacktrace/Fehler falls fehlgeschlagen")
     deleted_at: Optional[datetime] = Field(None, description="Zeitpunkt des Soft Deletes falls verwaist")
@@ -135,8 +135,46 @@ class IngestionJob(BaseModel):
         return Path(v) if v else v
 
 
-# --- PIPELINE CONTEXT ---
+# --- DELTA MODELLE (Reine Änderungs-Pakete vom Core zur Shell) ---
 
+class LedgerFieldDelta(BaseModel):
+    file_path: str
+    operation: Literal["insert", "update_strict", "delete"]
+    
+    # Optional gehalten: Nur gesetzte Felder (nicht-None) werden geschrieben
+    status: Optional[AssetStatus] = None
+    last_success_hash: Optional[str] = None
+    last_success_mtime: Optional[datetime] = None
+    last_error: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class JobFieldDelta(BaseModel):
+    job_id: Optional[UUID] = Field(default_factory=uuid4)
+    asset_path: str
+    original_path: Path
+    cloud_path: str
+    operation: OperationType
+    delta_operation: Literal["insert", "update_strict", "delete"] = "insert"
+    
+    status: Optional[JobStatus] = None
+    retry_count: Optional[int] = None
+    stacktrace: Optional[str] = None
+    
+    # Die mitgeschleiften Werte für die spätere Ledger-Aktualisierung durch den Worker
+    target_hash: Optional[str] = None
+    target_mtime: Optional[datetime] = None
+
+    @field_validator("original_path", mode="before")
+    @classmethod
+    def ensure_path(cls, v):
+        return Path(v) if v else v
+
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+
+
+# --- PIPELINE CONTEXT ---
 class AssetContext(BaseModel):
     path: str
     snapshot_item: Optional[FileSnapshot] = None
@@ -151,8 +189,9 @@ class AssetContext(BaseModel):
     needs_parsing: bool = False
     needs_embedding: bool = False
 
-    ledger_mutation: Optional[Dict[str, Any]] = None
-    job_mutation: Optional[Dict[str, Any]] = None
+    # Typsichere Deltas anstelle von losen Dicts:
+    ledger_mutation: Optional[LedgerFieldDelta] = None
+    job_mutation: Optional[JobFieldDelta] = None
     vector_operation: Optional[Dict[str, Any]] = None
 
 
@@ -161,7 +200,7 @@ class AssetContext(BaseModel):
 class JobContext(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, from_attributes=True)
     
-    job: Any  # IngestionJobModel
+    job: Any  
     active_command: Optional[JobCommand] = None  
     execution_error: Optional[Exception] = None
     error_message: Optional[str] = None
@@ -169,6 +208,5 @@ class JobContext(BaseModel):
     error_severity: Optional[str] = None    
     new_job_status: Optional[Any] = None
     increment_retry: bool = False
-
     
-    
+    ledger_mutation: Optional[LedgerFieldDelta] = None

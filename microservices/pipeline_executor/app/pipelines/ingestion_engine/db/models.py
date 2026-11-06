@@ -37,8 +37,8 @@ class AssetRecordModel(Base):
 
     # Primärschlüssel als String (Pfad)
     file_path: Mapped[str] = mapped_column(String(1024), primary_key=True)
-    last_seen_hash: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
-    last_seen_mtime: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_success_hash: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    last_success_mtime: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     status: Mapped[AssetStatus] = mapped_column(
         SQLEnum(AssetStatus, name="asset_status_enum"),
@@ -56,7 +56,7 @@ class AssetRecordModel(Base):
 
     # Performance-Index für Hash-Lookups (für Rename / Move Detection)
     __table_args__ = (
-        Index("idx_asset_hash_lookup", "last_seen_hash"),
+        Index("idx_asset_hash_lookup", "last_success_hash"),
     )
 
     def to_path(self) -> Path:
@@ -88,6 +88,12 @@ class IngestionJobModel(Base):
         index=True,
         nullable=False,
     )
+    
+    # Für späteres Update der Asset Registry, wenn der Job ein success ist
+    target_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    target_mtime: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    
+    # Fehlerbehandlung
     retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     max_retries: Mapped[int] = mapped_column(Integer, default=3, nullable=False)
 
