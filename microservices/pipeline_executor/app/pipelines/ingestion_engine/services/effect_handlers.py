@@ -68,7 +68,7 @@ async def mock_delete_job_payload(context: JobContext, *args, **kwargs):
     # await qdrant_client.delete(collection_name=..., points_selector=...)
     context.execution_error = (
         RuntimeError("Simulierter Fehler des Mock")
-        if random.random() < 0
+        if random.random() < 0.1
         else None
     )
 
@@ -82,7 +82,7 @@ async def mock_create_job_payload(context: JobContext, *args, **kwargs):
     # await qdrant_client.upsert(...)
     context.execution_error = (
         RuntimeError("Simulierter Fehler des Mock")
-        if random.random() < 0.9
+        if random.random() < 0.2
         else None
     )
 
@@ -96,8 +96,15 @@ async def effect_execute_job_payload(context: JobContext, *args, **kwargs):
         
         if operation == OperationType.DELETE:
             await mock_delete_job_payload(context, *args, **kwargs)
-        elif operation in (OperationType.CREATE, OperationType.UPDATE):
+        elif operation == OperationType.CREATE:
             await mock_create_job_payload(context, *args, **kwargs)
+        elif operation == OperationType.UPDATE:
+            # 1. Schritt: Alte Vektoren / Orphan Chunks restlos bereinigen
+            await mock_delete_job_payload(context, *args, **kwargs)
+            
+            # 2. Schritt: Nur wenn das Löschen erfolgreich war, die neue Version indexieren
+            if context.execution_error is None:
+                await mock_create_job_payload(context, *args, **kwargs)
         else:
             raise ValueError(f"Unbekannter Operationstyp im Job: {operation}")
             
