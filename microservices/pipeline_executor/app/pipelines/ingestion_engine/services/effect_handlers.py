@@ -11,6 +11,7 @@ from pipelines.ingestion_engine.core.models import (
     JobCommand,
     JobContext,
     JobStatus,
+    OperationType,
     PipelineCommand,
 )
 from pipelines.ingestion_engine.db.uow import AsyncUnitOfWork
@@ -85,19 +86,20 @@ async def mock_create_job_payload(context: JobContext, *args, **kwargs):
         else None
     )
 
+
 async def effect_execute_job_payload(context: JobContext, *args, **kwargs):
-    """Dispatcher-Weiche für Job-Payloads (DELETE vs. CREATE/INDEX)."""
+    """Dispatcher-Weiche für Job-Payloads"""
     try:
-        # Ermittle den Job-Typ (je nach Modellfeld z.B. job_type, action oder payload_type)
-        job_type = getattr(context.job, "job_type", "CREATE")
+        operation = context.job.operation
         
-        logger.info("🚀 [Worker Effect] Führe Payload für Job ID aus: %s [Typ: %s]", context.job.job_id, job_type)
+        logger.info("🚀 [Worker Effect] Führe Payload für Job ID aus: %s [Typ: %s]", context.job.job_id, operation)
         
-        if job_type == "DELETE":
+        if operation == OperationType.DELETE:
             await mock_delete_job_payload(context, *args, **kwargs)
-        else:
-            # Standard: CREATE / INDEX / UPDATE
+        elif operation in (OperationType.CREATE, OperationType.UPDATE):
             await mock_create_job_payload(context, *args, **kwargs)
+        else:
+            raise ValueError(f"Unbekannter Operationstyp im Job: {operation}")
             
     except Exception as e:
         logger.error("❌ [Worker Effect] Fehler bei Payload-Ausführung: %s", e)

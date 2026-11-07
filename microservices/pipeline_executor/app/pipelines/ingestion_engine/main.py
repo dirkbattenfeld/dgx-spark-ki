@@ -32,6 +32,8 @@ from pipelines.ingestion_engine.services.scanner import StorageSnapshotScanner
 
 async def inspect_database_state(stage_label: str):
     """Kapselt die Inspektion beider Tabellen für transparente Zwischen- und Endstände."""
+    logger.info("")  # Leerzeile
+    logger.info("-" * 50)  
     logger.info("--- [INSPECT] PostgreSQL State Inspection (%s) ---", stage_label)
     async with async_session_maker() as session:
         res_assets = await session.execute(select(AssetRecordModel))
@@ -45,6 +47,8 @@ async def inspect_database_state(stage_label: str):
         logger.info("⚙️ INGESTION JOBS (%d Einträge):", len(jobs))
         for j in jobs:
             logger.info("   - ID: %s | Op: %s | Status: %s", j.job_id, j.operation, j.status)
+    logger.info("-" * 50)
+    logger.info("")  # Leerzeile
 
 
 async def run_pipeline_test():
@@ -77,11 +81,11 @@ async def run_pipeline_test():
         logger.info("📊 Snapshots gefunden: %d", len(snapshots))
 
     if RUN_RECONCILIATION:
+        logger.info ("")
         logger.info("--- [RECONCILE] Chunked Reconciler & 3-Stage Pipeline ---")
-        if snapshots:
-            uow = AsyncUnitOfWork(async_session_maker)
-            reconciler = ReconciliationService(uow=uow, storage_client=storage_client)
-            await reconciler.reconcile(snapshots)
+        uow = AsyncUnitOfWork(async_session_maker)
+        reconciler = ReconciliationService(uow=uow, storage_client=storage_client)
+        await reconciler.reconcile(snapshots)
 
     if INSPECT_DATABASE:
         await inspect_database_state("DB: Post-Reconciliation (Pending Jobs erstellt)")

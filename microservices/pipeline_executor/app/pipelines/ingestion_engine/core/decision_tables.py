@@ -137,7 +137,6 @@ STAGE_3_RULES = [
     ),
     DecisionRule(
         name="PrepFullIndexModified",
-        # PHASE 4 INVARIANTE: Hier wird NUR der Status auf PENDING gesetzt. Hash und Mtime bleiben im Ledger unangetastet!
         conditions=[
             lambda ctx: ctx.planned_action == PlannedAction.INDEX_FULL and ctx.ledger_record is not None and ctx.snapshot_item is not None and ctx.snapshot_item.file_hash is not None
         ],
@@ -178,7 +177,8 @@ STAGE_3_RULES = [
         actions={
             "ledger_mutation": lambda ctx: LedgerFieldDelta(
                 file_path=str(ctx.path),
-                operation="delete"
+                operation="update_strict",
+                status=AssetStatus.PENDING
             ),
             "job_mutation": lambda ctx: JobFieldDelta(
                 asset_path=str(ctx.path),
@@ -240,8 +240,8 @@ WORKER_STAGE_2_RULES = [
         }
     ),
     DecisionRule(
-        name="Path_Success",
-        conditions=[lambda ctx: ctx.execution_error is None],
+        name="Path_Success_CreateOrUpdate",
+        conditions=[lambda ctx: ctx.execution_error is None and ctx.job.operation in {OperationType.CREATE, OperationType.UPDATE}],
         actions={
             "active_command": JobCommand.NONE,
             "error_classified": True,
@@ -262,6 +262,23 @@ WORKER_STAGE_2_RULES = [
             )
         }
     ),
+    DecisionRule(
+        name="Path_Success_Delete",
+        conditions=[lambda ctx: ctx.execution_error is None and ctx.job.operation == OperationType.DELETE],
+        actions={
+            "active_command": JobCommand.NONE,
+            "error_classified": True,
+            "error_severity": "none",
+            "new_job_status": JobStatus.SUCCESS,
+            "increment_retry": False,
+            # ERST WENN DER WORKER FERTIG IST (Vektoren gelöscht etc.), 
+            # wird das Asset final aus der Registry entfernt!
+            "ledger_mutation": lambda ctx: LedgerFieldDelta(
+                file_path=ctx.job.asset_path,
+                operation="delete",
+            )
+        }
+    )
 ]
 
 # STAGE 3: Nur für den Fehlerfall: Retry vs. DeadLetter Entscheidung

@@ -20,24 +20,19 @@ class OperationType(str, Enum):
     CREATE = "create"
     UPDATE = "update"
     DELETE = "delete"
-    MOVE = "move"
-
+ 
 class AssetStatus(str, Enum):
     SYNCED = "synced"
     PENDING = "pending"
     FAILED = "failed"
     DEAD_LETTER = "dead_letter"
-    DELETED = "deleted"
-    MOVED = "moved"
 
 class DiffStatus(str, Enum):
     UNCHANGED = "UNCHANGED"
     MODIFIED = "MODIFIED"
     NEW = "NEW"
     DELETED = "DELETED"
-    MOVED = "MOVED"
-
-
+    
 class PlannedAction(str, Enum):
     SKIP = "SKIP"
     INDEX_FULL = "INDEX_FULL"
@@ -48,8 +43,7 @@ class PlannedAction(str, Enum):
 class PipelineCommand(str, Enum):
     NONE = "NONE"
     COMPUTE_HASH = "COMPUTE_HASH"
-    DETECT_MOVE = "DETECT_MOVE"
-
+ 
 class JobCommand(str, Enum):
     NONE = "NONE"
     EXECUTE_PAYLOAD = "EXECUTE_PAYLOAD"

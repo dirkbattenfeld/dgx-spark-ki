@@ -40,7 +40,7 @@ class IngestionRepository:
 
     async def get_active_assets(self) -> List[AssetRecordModel]:
         result = await self.session.execute(
-            select(AssetRecordModel).where(AssetRecordModel.status != AssetStatus.DELETED)
+            select(AssetRecordModel)
         )
         return list(result.scalars().all())
 
@@ -53,7 +53,7 @@ class IngestionRepository:
     ) -> None:
         """Reiner, mechanischer Interpreter für Ledger- und Job-Deltas ohne jegliche Fachlogik."""
         
-        if not ledger_mutations and not job_mutations and not vector_operations:
+        if not ledger_mutations and not job_mutations:
             return
 
         # 1. Vorab-Laden aller relevanten Pfade zur Vermeidung von N+1-Queries

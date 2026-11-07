@@ -53,15 +53,17 @@ class ReconciliationService:
             ledger_map = {asset.file_path: asset for asset in db_assets}
 
         all_paths = sorted(list(set(snapshot_map.keys()) | set(ledger_map.keys())))
+        
+        print("DEBUG: ", all_paths)
+        
         total_processed = 0
 
         for i in range(0, len(all_paths), self.batch_size):
             chunk_paths = all_paths[i : i + self.batch_size]
-            logger.info("📦 Verarbeite Transaktions-Chunk %d bis %d von %d...", i, i + len(chunk_paths), len(all_paths))
+            logger.info("📦 Verarbeite Transaktions-Chunk %d bis %d von %d...", i + 1, i + len(chunk_paths), len(all_paths))
 
             ledger_mutations = []
             job_mutations = []
-            vector_operations = []
 
             async with self.uow as chunk_uow:
                 for path in chunk_paths:
@@ -87,14 +89,16 @@ class ReconciliationService:
                         ledger_mutations.append(ctx.ledger_mutation)
                     if ctx.job_mutation:
                         job_mutations.append(ctx.job_mutation)
-                    if ctx.vector_operation:
-                        vector_operations.append(ctx.vector_operation)
-
+                    
                     total_processed += 1
 
                 # Bulk-Persistenz für diesen Chunk
-                if ledger_mutations or job_mutations or vector_operations:
-                    await chunk_uow.repo.bulk_persist_chunk(ledger_mutations, job_mutations, vector_operations)
+                if ledger_mutations or job_mutations:
+                    await chunk_uow.repo.bulk_persist_chunk(ledger_mutations, job_mutations)
+                    
+                print ("DEBUG (legder mutations): ", ledger_mutations)
+                print ("DEBUG (job_mutations): ", job_mutations)
+
 
         logger.info("✨ Chunked Reconciler beendet. Total verarbeitet: %d", total_processed)
         return total_processed
