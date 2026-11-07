@@ -45,12 +45,11 @@ class IngestionRepository:
         return list(result.scalars().all())
 
 
-    # --- PHASE 2: DER REINER CRUD-DELTA-INTERPRETER ---
+    # --- PHASE 2: REINER CRUD-DELTA-INTERPRETER ---
     async def bulk_persist_chunk(
         self, 
         ledger_mutations: List[LedgerFieldDelta], 
-        job_mutations: List[JobFieldDelta], 
-        vector_operations: List[dict]
+        job_mutations: List[JobFieldDelta]
     ) -> None:
         """Reiner, mechanischer Interpreter für Ledger- und Job-Deltas ohne jegliche Fachlogik."""
         
@@ -116,10 +115,6 @@ class IngestionRepository:
                     await self.session.execute(
                         delete(IngestionJobModel).where(IngestionJobModel.asset_path == j_mut.asset_path)
                     )
-
-        # 4. Vector-Operationen (Stub / Logging)
-        for v_op in vector_operations:
-            logger.info("🧹 [Vector Operation Stub] Vektor-Löschung verzeichnet für Pfad: %s", v_op.get("path"))
 
         await self.session.flush()
 

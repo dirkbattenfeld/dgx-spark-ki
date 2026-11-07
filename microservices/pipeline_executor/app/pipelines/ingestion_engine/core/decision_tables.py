@@ -1,6 +1,7 @@
 # pipeline_executor/app/pipelines/ingestion_engine/core/decision_tables.py
 
 import logging
+from pathlib import Path
 from typing import Any, Callable, Dict, List
 
 from pipelines.ingestion_engine.core.models import (
@@ -168,8 +169,7 @@ STAGE_3_RULES = [
                 status=AssetStatus.SYNCED,
                 last_success_mtime=ctx.snapshot_item.mtime
             ),
-            "job_mutation": None,
-            "vector_operation": None
+            "job_mutation": None
         }
     ),
     DecisionRule(
@@ -180,7 +180,6 @@ STAGE_3_RULES = [
                 file_path=str(ctx.path),
                 operation="delete"
             ),
-            "vector_operation": lambda ctx: {"action": "delete_by_path", "path": ctx.path},
             "job_mutation": lambda ctx: JobFieldDelta(
                 asset_path=str(ctx.path),
                 original_path=Path(ctx.path),
@@ -196,8 +195,7 @@ STAGE_3_RULES = [
         conditions=[lambda ctx: ctx.planned_action == PlannedAction.SKIP],
         actions={
             "ledger_mutation": None,
-            "job_mutation": None,
-            "vector_operation": None
+            "job_mutation": None
         }
     ),
     DecisionRule(
@@ -214,8 +212,7 @@ STAGE_3_RULES = [
                 cloud_path="",
                 operation=OperationType.DELETE,
                 delta_operation="delete"  # Löscht die Pending-Jobs über das Repo
-            ),
-            "vector_operation": None
+            )
         }
     ),
 ]
