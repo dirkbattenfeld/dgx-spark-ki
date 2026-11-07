@@ -74,15 +74,12 @@ class ReconciliationService:
 
                     # Stage 1
                     ctx = DecisionTableRunner.evaluate(ctx, STAGE_1_RULES)
-                    await EffectExecutionRunner.execute_command(ctx, PIPELINE_EFFECT_REGISTRY, chunk_uow, self.storage)
                     if ctx.active_command != PipelineCommand.NONE:
-                        ctx = DecisionTableRunner.evaluate(ctx, STAGE_1_RULES)
+                        await EffectExecutionRunner.execute_command(ctx, PIPELINE_EFFECT_REGISTRY, chunk_uow, self.storage)
 
                     # Stage 2
                     ctx = DecisionTableRunner.evaluate(ctx, STAGE_2_RULES)
-                    await EffectExecutionRunner.execute_command(ctx, PIPELINE_EFFECT_REGISTRY, chunk_uow, self.storage)
-                    ctx = DecisionTableRunner.evaluate(ctx, STAGE_2_RULES)
-
+                    
                     # Stage 3
                     ctx = DecisionTableRunner.evaluate(ctx, STAGE_3_RULES)
                     if ctx.ledger_mutation:

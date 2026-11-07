@@ -80,6 +80,11 @@ STAGE_1_RULES = [
 
 STAGE_2_RULES = [
     DecisionRule(
+        name="PassThroughIfSkipOrDeleted",
+        conditions=[lambda ctx: ctx.planned_action in [PlannedAction.SKIP, PlannedAction.REMOVE_VECTORS, PlannedAction.CANCEL_PENDING_CREATE]],
+        actions={}
+    ),
+    DecisionRule(
         name="FileIsSyncedFalseAlarm",
         # BEGRÜNDUNG: Der Zeitstempel (mtime) hat sich zwar geändert, aber der berechnete Hash 
         # ist identisch mit dem Ledger-Hash. Das fängt False Alarms (z. B. durch Backups oder Kopiervorgänge) 
@@ -92,20 +97,20 @@ STAGE_2_RULES = [
         # BEGRÜNDUNG: Die Datei existiert im Ledger noch überhaupt nicht (völlig neuer Pfad) 
         # -> Volles Indexieren (INDEX_FULL / Create).
         conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is None],
-        actions={"diff_status": DiffStatus.NEW, "planned_action": PlannedAction.INDEX_FULL}
+        actions={"diff_status": DiffStatus.NEW, "planned_action": PlannedAction.INDEX_NEW}
     ),
     DecisionRule(
         name="FileIsModifiedInPlace",
         # BEGRÜNDUNG: Die Datei existiert im Ledger, aber der Hash weicht ab (Inhalt wurde tatsächlich editiert) 
         # -> Volles Neu-Indexieren (INDEX_FULL / Update).
-        conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is not None and ctx.snapshot_item.file_hash != ctx.ledger_record.last_success_hash],
-        actions={"diff_status": DiffStatus.MODIFIED, "planned_action": PlannedAction.INDEX_FULL}
-    ),
-    DecisionRule(
-        name="PassThroughIfSkipOrDeleted",
-        conditions=[lambda ctx: ctx.planned_action in [PlannedAction.SKIP, PlannedAction.REMOVE_VECTORS]],
-        actions={}
-    ),
+        conditions=[
+            lambda ctx: ctx.snapshot_item is not None 
+            and ctx.ledger_record is not None 
+            and ctx.snapshot_item.file_hash is not None 
+            and ctx.snapshot_item.file_hash != ctx.ledger_record.last_success_hash
+        ],
+        actions={"diff_status": DiffStatus.MODIFIED, "planned_action": PlannedAction.INDEX_MODIFIED}
+    )   
 ]
 
 
@@ -113,15 +118,12 @@ STAGE_3_RULES = [
     DecisionRule(
         name="PrepFullIndexNew",
         conditions=[
-            lambda ctx: ctx.planned_action == PlannedAction.INDEX_FULL and ctx.ledger_record is None and ctx.snapshot_item is not None and ctx.snapshot_item.file_hash is not None
-        ],
+            lambda ctx: ctx.planned_action == PlannedAction.INDEX_NEW],
         actions={
             "ledger_mutation": lambda ctx: LedgerFieldDelta(
                 file_path=str(ctx.path),
                 operation="insert",
-                status=AssetStatus.PENDING,
-                last_success_hash=ctx.snapshot_item.file_hash,
-                last_success_mtime=ctx.snapshot_item.mtime
+                status=AssetStatus.PENDING
             ),
             "job_mutation": lambda ctx: JobFieldDelta(
                 asset_path=str(ctx.path),
@@ -138,8 +140,7 @@ STAGE_3_RULES = [
     DecisionRule(
         name="PrepFullIndexModified",
         conditions=[
-            lambda ctx: ctx.planned_action == PlannedAction.INDEX_FULL and ctx.ledger_record is not None and ctx.snapshot_item is not None and ctx.snapshot_item.file_hash is not None
-        ],
+            lambda ctx: ctx.planned_action == PlannedAction.INDEX_MODIFIED],
         actions={
             "ledger_mutation": lambda ctx: LedgerFieldDelta(
                 file_path=str(ctx.path),
@@ -160,7 +161,7 @@ STAGE_3_RULES = [
     ),
     DecisionRule(
         name="PrepSynced",
-        conditions=[lambda ctx: ctx.planned_action == PlannedAction.SYNCED and ctx.snapshot_item is not None],
+        conditions=[lambda ctx: ctx.planned_action == PlannedAction.SYNCED],
         actions={
             "ledger_mutation": lambda ctx: LedgerFieldDelta(
                 file_path=str(ctx.path),

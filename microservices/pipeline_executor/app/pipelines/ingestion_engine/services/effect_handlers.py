@@ -82,7 +82,7 @@ async def mock_create_job_payload(context: JobContext, *args, **kwargs):
     # await qdrant_client.upsert(...)
     context.execution_error = (
         RuntimeError("Simulierter Fehler des Mock")
-        if random.random() < 0.85
+        if random.random() < 0.9
         else None
     )
 

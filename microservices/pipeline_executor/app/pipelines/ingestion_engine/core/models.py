@@ -35,7 +35,8 @@ class DiffStatus(str, Enum):
     
 class PlannedAction(str, Enum):
     SKIP = "SKIP"
-    INDEX_FULL = "INDEX_FULL"
+    INDEX_NEW = "INDEX_NEW"
+    INDEX_MODIFIED = "INDEX_MODIFIED"
     REMOVE_VECTORS = "REMOVE_VECTORS"
     CANCEL_PENDING_CREATE = "CANCEL_PENDING_CREATE"
     SYNCED = "synced"
@@ -178,7 +179,7 @@ class AssetContext(BaseModel):
     detected_new_path: Optional[str] = None
 
     diff_status: Optional[DiffStatus] = None
-    planned_action: PlannedAction = PlannedAction.SKIP
+    planned_action: Optional[PlannedAction] = None
     needs_parsing: bool = False
     needs_embedding: bool = False
 
