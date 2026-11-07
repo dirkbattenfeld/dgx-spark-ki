@@ -108,7 +108,9 @@ class IngestionRepository:
                         cloud_path=j_mut.cloud_path,
                         operation=j_mut.operation,
                         status=j_mut.status or JobStatus.PENDING,
-                        retry_count=j_mut.retry_count or 0
+                        retry_count=j_mut.retry_count or 0,
+                        target_hash=j_mut.target_hash, 
+                        target_mtime=j_mut.target_mtime
                     )
                     self.session.add(job)
                 case "delete":

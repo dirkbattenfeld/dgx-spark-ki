@@ -68,7 +68,7 @@ async def mock_delete_job_payload(context: JobContext, *args, **kwargs):
     # await qdrant_client.delete(collection_name=..., points_selector=...)
     context.execution_error = (
         RuntimeError("Simulierter Fehler des Mock")
-        if random.random() < 0.5
+        if random.random() < 0
         else None
     )
 
@@ -82,7 +82,7 @@ async def mock_create_job_payload(context: JobContext, *args, **kwargs):
     # await qdrant_client.upsert(...)
     context.execution_error = (
         RuntimeError("Simulierter Fehler des Mock")
-        if random.random() < 0.5
+        if random.random() < 0.85
         else None
     )
 

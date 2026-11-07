@@ -96,7 +96,6 @@ class AssetRecord(BaseModel):
     last_success_mtime: datetime = Field(..., description="Letzte bekannte Modifikationszeit")
     status: AssetStatus = Field(default=AssetStatus.PENDING, description="Aktueller Verarbeitungsstatus des Assets")
     last_error: Optional[str] = Field(None, description="Letzter Stacktrace/Fehler falls fehlgeschlagen")
-    deleted_at: Optional[datetime] = Field(None, description="Zeitpunkt des Soft Deletes falls verwaist")
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Letztes Update des Records")
 
     @field_validator("file_path", mode="before")
@@ -186,8 +185,7 @@ class AssetContext(BaseModel):
     # Typsichere Deltas anstelle von losen Dicts:
     ledger_mutation: Optional[LedgerFieldDelta] = None
     job_mutation: Optional[JobFieldDelta] = None
-    vector_operation: Optional[Dict[str, Any]] = None
-
+    
 
 # --- JOB WORKER CONTEXT ---
 

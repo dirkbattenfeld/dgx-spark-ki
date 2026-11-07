@@ -45,8 +45,7 @@ class AssetRecordModel(Base):
         default=AssetStatus.PENDING,
         nullable=False,
     )
-    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)   
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), 
         default=lambda: datetime.now(timezone.utc), 

@@ -255,10 +255,6 @@ WORKER_STAGE_2_RULES = [
                 status=AssetStatus.SYNCED,
                 last_success_hash=ctx.job.target_hash,
                 last_success_mtime=ctx.job.target_mtime
-            ) if ctx.job.target_hash else LedgerFieldDelta(
-                file_path=ctx.job.asset_path,
-                operation="update_strict",
-                status=AssetStatus.SYNCED
             )
         }
     ),
