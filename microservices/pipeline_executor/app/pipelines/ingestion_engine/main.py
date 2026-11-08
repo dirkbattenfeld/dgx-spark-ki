@@ -15,8 +15,8 @@ logging.basicConfig(
 
 logger = logging.getLogger("IngestionTestMain")
 
-RUN_SCANNER = True
-RUN_RECONCILIATION = True
+RUN_SCANNER = False
+RUN_RECONCILIATION = False 
 RUN_JOB_WORKER = True
 INSPECT_DATABASE = True
 

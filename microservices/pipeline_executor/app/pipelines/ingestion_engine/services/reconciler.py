@@ -54,8 +54,6 @@ class ReconciliationService:
 
         all_paths = sorted(list(set(snapshot_map.keys()) | set(ledger_map.keys())))
         
-        print("DEBUG: ", all_paths)
-        
         total_processed = 0
 
         for i in range(0, len(all_paths), self.batch_size):
@@ -93,8 +91,8 @@ class ReconciliationService:
                 if ledger_mutations or job_mutations:
                     await chunk_uow.repo.bulk_persist_chunk(ledger_mutations, job_mutations)
                     
-                print ("DEBUG (legder mutations): ", ledger_mutations)
-                print ("DEBUG (job_mutations): ", job_mutations)
+                logger.debug ("DEBUG (legder mutations): %s", ledger_mutations)
+                logger.debug ("DEBUG (job_mutations): %s", job_mutations)
 
 
         logger.info("✨ Chunked Reconciler beendet. Total verarbeitet: %d", total_processed)

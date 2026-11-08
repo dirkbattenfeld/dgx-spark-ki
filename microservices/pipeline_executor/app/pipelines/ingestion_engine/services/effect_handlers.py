@@ -72,8 +72,17 @@ async def mock_delete_job_payload(context: JobContext, *args, **kwargs):
         else None
     )
 
+crash_counter = 0
 async def mock_create_job_payload(context: JobContext, *args, **kwargs):
     """Mock für Ingestion-Pipeline (Docling, Embedding, Qdrant Upsert) bei CREATE/UPDATE-Jobs."""
+    global crash_counter
+    crash_counter +=1
+    
+    if crash_counter == 5:
+        logger.error("💀 [HARD CRASH] OOM / SIGKILL / Prozess stirbt hart bei Job: %s", context.job.job_id)
+        import sys
+        sys.exit(42)
+    
     job_id = context.job.job_id
     logger.info("🚀 [Job Mock Shell] Ingestion Pipeline: Starte Voll-Indexierung (Docling/Embedding) für Job ID: %s", job_id)
     # Späterer echter Code hier:
