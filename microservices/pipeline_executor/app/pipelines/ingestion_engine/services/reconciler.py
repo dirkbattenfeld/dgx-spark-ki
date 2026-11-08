@@ -77,6 +77,8 @@ class ReconciliationService:
 
                     # Stage 2
                     ctx = DecisionTableRunner.evaluate(ctx, STAGE_2_RULES)
+                    if ctx.active_command != PipelineCommand.NONE:
+                        await EffectExecutionRunner.execute_command(ctx, PIPELINE_EFFECT_REGISTRY, chunk_uow, self.storage)
                     
                     # Stage 3
                     ctx = DecisionTableRunner.evaluate(ctx, STAGE_3_RULES)

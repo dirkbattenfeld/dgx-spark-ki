@@ -97,7 +97,10 @@ STAGE_2_RULES = [
         # BEGRÜNDUNG: Die Datei existiert im Ledger noch überhaupt nicht (völlig neuer Pfad) 
         # -> Volles Indexieren (INDEX_FULL / Create).
         conditions=[lambda ctx: ctx.snapshot_item is not None and ctx.ledger_record is None],
-        actions={"diff_status": DiffStatus.NEW, "planned_action": PlannedAction.INDEX_NEW}
+        actions={"diff_status": DiffStatus.NEW,
+                 "planned_action": PlannedAction.INDEX_NEW,
+                 "active_command": PipelineCommand.UPLOAD_S3
+        }
     ),
     DecisionRule(
         name="FileIsModifiedInPlace",
@@ -109,12 +112,43 @@ STAGE_2_RULES = [
             and ctx.snapshot_item.file_hash is not None 
             and ctx.snapshot_item.file_hash != ctx.ledger_record.last_success_hash
         ],
-        actions={"diff_status": DiffStatus.MODIFIED, "planned_action": PlannedAction.INDEX_MODIFIED}
+        actions={"diff_status": DiffStatus.MODIFIED,
+                 "planned_action": PlannedAction.INDEX_MODIFIED,
+                 "active_command": PipelineCommand.UPLOAD_S3
+        }
     )   
 ]
 
 
 STAGE_3_RULES = [
+    # Fängt ab, wenn der S3-Upload in der Shell bei neuer Datei fehlgeschlagen ist
+    DecisionRule(
+        name="PrepUploadFailedNew",
+        conditions=[lambda ctx: ctx.upload_error is not None and ctx.planned_action == PlannedAction.INDEX_NEW],
+        actions={
+            "ledger_mutation": lambda ctx: LedgerFieldDelta(
+                file_path=str(ctx.path),
+                delta_operation="insert", 
+                status=AssetStatus.FAILED,
+                last_error=ctx.upload_error
+            ),
+            "job_mutation": None  
+        }
+    ),
+    # Fängt ab, wenn der S3-Upload in der Shell bei Dateiupdate fehlgeschlagen ist
+    DecisionRule(
+        name="PrepUploadFailedModified",
+        conditions=[lambda ctx: ctx.upload_error is not None and ctx.planned_action == PlannedAction.INDEX_MODIFIED],
+        actions={
+            "ledger_mutation": lambda ctx: LedgerFieldDelta(
+                file_path=str(ctx.path),
+                delta_operation="update_strict",
+                status=AssetStatus.FAILED,
+                last_error=ctx.upload_error
+            ),
+            "job_mutation": None  
+        }
+    ),
     DecisionRule(
         name="PrepFullIndexNew",
         conditions=[
@@ -122,13 +156,13 @@ STAGE_3_RULES = [
         actions={
             "ledger_mutation": lambda ctx: LedgerFieldDelta(
                 file_path=str(ctx.path),
-                operation="insert",
+                delta_operation="insert",
                 status=AssetStatus.PENDING
             ),
             "job_mutation": lambda ctx: JobFieldDelta(
                 asset_path=str(ctx.path),
                 original_path=ctx.snapshot_item.path,
-                cloud_path=f"s3://staging/{ctx.path}",
+                cloud_path=ctx.s3_path,
                 operation=OperationType.CREATE,
                 delta_operation="insert",
                 status=JobStatus.PENDING,
@@ -144,13 +178,13 @@ STAGE_3_RULES = [
         actions={
             "ledger_mutation": lambda ctx: LedgerFieldDelta(
                 file_path=str(ctx.path),
-                operation="update_strict",
+                delta_operation="update_strict",
                 status=AssetStatus.PENDING 
             ),
             "job_mutation": lambda ctx: JobFieldDelta(
                 asset_path=str(ctx.path),
                 original_path=ctx.snapshot_item.path,
-                cloud_path=f"s3://staging/{ctx.path}",
+                cloud_path=ctx.s3_path,
                 operation=OperationType.UPDATE,
                 delta_operation="insert",
                 status=JobStatus.PENDING,
@@ -165,7 +199,7 @@ STAGE_3_RULES = [
         actions={
             "ledger_mutation": lambda ctx: LedgerFieldDelta(
                 file_path=str(ctx.path),
-                operation="update_strict",
+                delta_operation="update_strict",
                 status=AssetStatus.SYNCED,
                 last_success_mtime=ctx.snapshot_item.mtime
             ),
@@ -178,7 +212,7 @@ STAGE_3_RULES = [
         actions={
             "ledger_mutation": lambda ctx: LedgerFieldDelta(
                 file_path=str(ctx.path),
-                operation="update_strict",
+                delta_operation="update_strict",
                 status=AssetStatus.PENDING
             ),
             "job_mutation": lambda ctx: JobFieldDelta(
@@ -205,7 +239,7 @@ STAGE_3_RULES = [
         actions={
             "ledger_mutation": lambda ctx: LedgerFieldDelta(
                 file_path=str(ctx.path),
-                operation="delete"
+                delta_operation="delete"
             ),
             "job_mutation": lambda ctx: JobFieldDelta(
                 asset_path=str(ctx.path),
@@ -252,7 +286,7 @@ WORKER_STAGE_2_RULES = [
             # ERST HIER SCHREIBEN WIR MTIME UND HASH IN DEN LEDGER!
             "ledger_mutation": lambda ctx: LedgerFieldDelta(
                 file_path=ctx.job.asset_path,
-                operation="update_strict",
+                delta_operation="update_strict",
                 status=AssetStatus.SYNCED,
                 last_success_hash=ctx.job.target_hash,
                 last_success_mtime=ctx.job.target_mtime
@@ -272,7 +306,7 @@ WORKER_STAGE_2_RULES = [
             # wird das Asset final aus der Registry entfernt!
             "ledger_mutation": lambda ctx: LedgerFieldDelta(
                 file_path=ctx.job.asset_path,
-                operation="delete",
+                delta_operation="delete",
             )
         }
     )

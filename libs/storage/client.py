@@ -133,33 +133,58 @@ class StorageClient:
             
         return clean_files
 
-    def list_files_alt(self, bucket: str, glob_pattern: str = "*"):
-        """Gibt eine Liste von vollqualifizierten URLs (s3:// oder file://) zurück."""
-        base_path = self._get_full_path(bucket)
-        fs = self._get_fs(base_path)
-        
-        # Protokoll extrahieren (z.B. "s3" oder "file")
-        import fsspec
-        protocol = fsspec.utils.get_protocol(base_path)
-        
-        # Holen der nackten Dateien vom Dateisystem/S3
-        files = fs.glob(f"{base_path}/{glob_pattern}")
-        
-        clean_files = []
-        for f in files:
-            # fsspec liefert Pfade oft ohne Protokoll. Wir säubern sie:
-            # (S3 liefert oft 'bucket/key', lokal liefert es '/absolute/path')
-            clean_path = f.replace(f"{protocol}://", "", 1)
-            
-            # Sicherstellen, dass lokale absolute Pfade nicht ihren führenden / verlieren
-            if protocol == "file" and not clean_path.startswith("/"):
-                clean_path = "/" + clean_path
-                
-            clean_files.append(f"{protocol}://{clean_path}")
-            
-        return clean_files
         
     def mkdir(self, bucket: str):
         path = self._get_full_path(bucket)
         fs = self._get_fs(path)
         fs.mkdir(path)
+        
+    
+    def copy_file(self, src_path: str, dest_path: str):
+        """
+        Kopiert eine Datei über fsspec-Dateisysteme hinweg 
+        (z. B. lokal file:// nach S3 s3:// oder innerhalb von S3).
+        """
+        # Wir ermitteln das Dateisystem anhand des Quellpfads
+        fs_src = self._get_fs(src_path)
+        fs_dest = self._get_fs(dest_path)
+        
+        # Falls Quell- und Ziel-Filesystem identisch sind (z.B. S3 -> S3)
+        if fs_src.protocol == fs_dest.protocol:
+            try:
+                fs_src.copy(src_path, dest_path)
+                # Cache für Zielpfad invalidieren, falls vorhanden
+                if hasattr(fs_dest, "invalidate_cache"):
+                    fs_dest.invalidate_cache(dest_path)
+                return
+            except Exception as e:
+                raise RuntimeError(f"❌ [StorageClient] Fehler beim Kopieren von '{src_path}' nach '{dest_path}': {e}")
+        
+        # Cross-Filesystem (z.B. lokal file:// -> S3 s3://)
+        try:
+            with fs_src.open(src_path, "rb") as f_src:
+                with fs_dest.open(dest_path, "wb") as f_dest:
+                    # In Chunks kopieren, um RAM bei großen PDFs (Docling) zu schonen
+                    while chunk := f_src.read(1024 * 1024):  # 1 MB Chunks
+                        f_dest.write(chunk)
+                        
+            if hasattr(fs_dest, "invalidate_cache"):
+                fs_dest.invalidate_cache(dest_path)
+                
+        except Exception as e:
+            raise RuntimeError(f"❌ [StorageClient] Cross-System-Kopierfehler von '{src_path}' nach '{dest_path}': {e}")
+
+    def ensure_bucket_exists(self, bucket_name: str):
+        """
+        Prüft, ob ein Bucket existiert, und legt ihn an, falls er fehlt.
+        """
+        path = self._get_full_path(bucket_name)
+        fs = self._get_fs(path)
+        
+        if not fs.exists(path):
+            try:
+                fs.mkdir(path)
+                print(f"📁 [StorageClient] Bucket/Verzeichnis '{bucket_name}' erfolgreich erstellt.")
+            except Exception as e:
+                raise RuntimeError(f"❌ [StorageClient] Konnte Bucket '{bucket_name}' nicht erstellen: {e}")
+

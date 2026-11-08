@@ -44,6 +44,7 @@ class PlannedAction(str, Enum):
 class PipelineCommand(str, Enum):
     NONE = "NONE"
     COMPUTE_HASH = "COMPUTE_HASH"
+    UPLOAD_S3 = "UPLOAD_S3"
  
 class JobCommand(str, Enum):
     NONE = "NONE"
@@ -77,7 +78,7 @@ class PipelineConfig(BaseModel):
 
 class FileSnapshot(BaseModel):
     path: Path = Field(..., description="Relativer oder absoluter Pfad der Datei als eindeutiger Identifier")
-    size_bytes: int = Field(..., ge=0, description="Dateigröße in Bytes")
+#    size_bytes: int = Field(..., ge=0, description="Dateigröße in Bytes")
     mtime: datetime = Field(..., description="Letzte Modifikationszeit (UTC)")
     file_hash: Optional[str] = Field(
         None, description="Inhalts-Hash (z.B. xxhash/sha256) zur Kollisions- und Änderungsprüfung"
@@ -133,7 +134,7 @@ class IngestionJob(BaseModel):
 
 class LedgerFieldDelta(BaseModel):
     file_path: str
-    operation: Literal["insert", "update_strict", "delete"]
+    delta_operation: Literal["insert", "update_strict", "delete"]
     
     # Optional gehalten: Nur gesetzte Felder (nicht-None) werden geschrieben
     status: Optional[AssetStatus] = None
@@ -175,14 +176,13 @@ class AssetContext(BaseModel):
     ledger_record: Optional[AssetRecord] = None
 
     active_command: PipelineCommand = PipelineCommand.NONE
-    detected_old_path: Optional[str] = None
-    detected_new_path: Optional[str] = None
-
     diff_status: Optional[DiffStatus] = None
     planned_action: Optional[PlannedAction] = None
-    needs_parsing: bool = False
-    needs_embedding: bool = False
 
+    # S3 upload
+    upload_error: Optional[str] = None
+    s3_path: Optional[str] = None
+    
     # Typsichere Deltas anstelle von losen Dicts:
     ledger_mutation: Optional[LedgerFieldDelta] = None
     job_mutation: Optional[JobFieldDelta] = None

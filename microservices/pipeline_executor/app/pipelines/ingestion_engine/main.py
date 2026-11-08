@@ -15,9 +15,9 @@ logging.basicConfig(
 
 logger = logging.getLogger("IngestionTestMain")
 
-RUN_SCANNER = False
-RUN_RECONCILIATION = False 
-RUN_JOB_WORKER = True
+RUN_SCANNER = True
+RUN_RECONCILIATION = True 
+RUN_JOB_WORKER = False
 INSPECT_DATABASE = True
 
 from pipelines.ingestion_engine.core.config import settings

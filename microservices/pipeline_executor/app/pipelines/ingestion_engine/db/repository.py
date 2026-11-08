@@ -69,7 +69,7 @@ class IngestionRepository:
             path = mut.file_path
             existing = existing_map.get(path)
 
-            match mut.operation:
+            match mut.delta_operation:
                 case "insert":
                     if existing:
                         raise ValueError(f"Invarianten-Verletzung: Kann Asset {path} nicht einfügen, da es bereits existiert.")

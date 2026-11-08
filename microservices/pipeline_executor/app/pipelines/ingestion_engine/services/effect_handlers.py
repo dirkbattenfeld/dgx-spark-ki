@@ -1,7 +1,9 @@
 # pipeline_executor/app/pipelines/ingestion_engine/services/effect_handlers.py
 
+import asyncio
 import hashlib
 import logging
+from pathlib import Path
 from typing import Any, Callable, Dict
 
 from storage.client import StorageClient
@@ -51,8 +53,40 @@ async def effect_compute_hash(context: AssetContext, uow: AsyncUnitOfWork, stora
             raise
 
 
+async def effect_upload_s3(context: AssetContext, uow: AsyncUnitOfWork, storage: StorageClient):
+    """Führt den S3-Upload für neue oder modifizierte Dateien aus."""
+    local_path = "unknown"
+    try:
+        snapshot = getattr(context, "snapshot_item", None)
+        if not snapshot or not snapshot.file_hash:
+            raise ValueError("❌ [S3-Path] Kann keinen S3-Pfad generieren: snapshot_item oder file_hash fehlt.")
+            
+        local_path = snapshot.path
+        file_hash = snapshot.file_hash
+        hash_prefix = file_hash[:16]   
+         
+        filename = Path(local_path).name
+        bucket_name = "ingestion"
+        s3_path = f"s3://{bucket_name}/{hash_prefix}-{filename}"
+
+        await asyncio.to_thread(storage.ensure_bucket_exists, bucket_name)
+        
+        src_uri = local_path if "://" in str(local_path) else f"file://{local_path}"
+        await asyncio.to_thread(storage.copy_file, src_uri, s3_path)
+        
+        context.s3_path = s3_path
+        context.upload_error = None
+        logger.info("☁️ [Reconciler Effect] S3-Upload erfolgreich: %s -> %s", local_path, s3_path)
+        
+    except Exception as e:
+        logger.error("❌ [Reconciler Effect] S3-Upload fehlgeschlagen für %s: %s", local_path, e, exc_info=True)
+        context.upload_error = str(e)
+        context.s3_path = None
+
+
 PIPELINE_EFFECT_REGISTRY = {
     PipelineCommand.COMPUTE_HASH: effect_compute_hash,
+    PipelineCommand.UPLOAD_S3: effect_upload_s3
 }
 
 
@@ -64,13 +98,13 @@ async def mock_delete_job_payload(context: JobContext, *args, **kwargs):
     """Mock für Qdrant Vektor-Löschung bei DELETE-Jobs."""
     job_id = context.job.job_id
     logger.info("🧹 [Job Mock Shell] Qdrant: Lösche Vektoren für Job ID: %s", job_id)
-    # Späterer echter Code hier:
-    # await qdrant_client.delete(collection_name=..., points_selector=...)
+    
     context.execution_error = (
         RuntimeError("Simulierter Fehler des Mock")
-        if random.random() < 0.1
+        if random.random() < 0
         else None
     )
+
 
 crash_counter = 0
 async def mock_create_job_payload(context: JobContext, *args, **kwargs):
@@ -78,22 +112,36 @@ async def mock_create_job_payload(context: JobContext, *args, **kwargs):
     global crash_counter
     crash_counter +=1
     
-    if crash_counter == 5:
+    if crash_counter == -1:
         logger.error("💀 [HARD CRASH] OOM / SIGKILL / Prozess stirbt hart bei Job: %s", context.job.job_id)
         import sys
         sys.exit(42)
     
     job_id = context.job.job_id
     logger.info("🚀 [Job Mock Shell] Ingestion Pipeline: Starte Voll-Indexierung (Docling/Embedding) für Job ID: %s", job_id)
-    # Späterer echter Code hier:
-    # parsed_doc = await docling_parser.parse(...)
-    # vectors = await embedding_generator.generate(...)
-    # await qdrant_client.upsert(...)
+    
     context.execution_error = (
         RuntimeError("Simulierter Fehler des Mock")
-        if random.random() < 0.2
+        if random.random() < 0
         else None
     )
+
+
+async def create_job_payload(context: JobContext, *args, **kwargs):
+    """Ingestion-Pipeline für CREATE/UPDATE-Jobs."""
+    job_id = context.job.job_id
+    logger.info("🚀 [Ingestion Pipeline]: Starte Voll-Indexierung für Job ID: %s", job_id)
+    try:
+        cloud_path = context.job.cloud_path
+        
+        
+    except Exception as e:
+        logger.error("[Ingestion Pipeline]: Fehler während der Ausführung von Job ID: %s: %s", job_id, e)
+        context.execution_error = (
+            RuntimeError("Simulierter Fehler des Mock")
+            if random.random() < 0
+            else None
+        )
 
 
 async def effect_execute_job_payload(context: JobContext, *args, **kwargs):
