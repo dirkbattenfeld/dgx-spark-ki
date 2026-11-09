@@ -16,6 +16,17 @@ redis_port: 6379
 s3_endpoint_ip: "{{ pc_ip }}"
 s3_bucket_name: "my-rag-bucket"
 
+# PostGreSQL für Ingestion
+postgres_user: "ingestion_user"
+postgress_password: "ingestion_pw"
+postgres_db: "ingestion_db"
+postgres_server: "{{ pc_ip }}"
+postgres_port: 5432
+
+# Ingestion Engine
+ingestion_worker_concurrency: 4
+ingestion_batch_size: 100
+
 #
 # Generische Konfiguration
 #

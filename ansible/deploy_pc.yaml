@@ -68,6 +68,22 @@
         state: "{{ deployment_action }}"
       tags: [pipeline-orchestrator]
 
+#    - name: Manage Pipeline Executor Service
+#      community.docker.docker_compose_v2:
+#        project_src: "{{ playbook_dir }}/../microservices/pipeline_executor"
+#        env_files:
+#          - "{{ playbook_dir }}/../.env"
+#        state: "{{ deployment_action }}"
+#      tags: [pipeline-executor]
+
+    - name: Manage PostGreSQL Database
+      community.docker.docker_compose_v2:
+        project_src: "{{ playbook_dir }}/../microservices/postgresql"
+        env_files:
+          - "{{ playbook_dir }}/../.env"
+        state: "{{ deployment_action }}"
+      tags: [postgresql]
+
     - name: Manage Qdrant Vector Database
       community.docker.docker_compose_v2:
         project_src: "{{ playbook_dir }}/../microservices/qdrant"
