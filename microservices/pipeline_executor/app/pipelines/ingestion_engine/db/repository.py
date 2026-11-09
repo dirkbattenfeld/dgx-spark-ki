@@ -182,7 +182,7 @@ class IngestionRepository:
         if ledger_mutation:
             asset = await self.get_by_path(ledger_mutation.file_path)
             
-            match ledger_mutation.operation:
+            match ledger_mutation.delta_operation:
                 case "delete":
                     if asset:
                         await self.session.delete(asset)

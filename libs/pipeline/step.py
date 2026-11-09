@@ -5,7 +5,7 @@ import logging
 from typing import Any, Callable, Dict, Optional, Type
 from pydantic import BaseModel
 
-from libs.observability.wrapper import trace_step, trace_data
+from observability.wrapper import trace_step, trace_data
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field
-from libs.streampipe.basemodels import BaseComponentResult
+from streampipe.basemodels import BaseComponentResult
 
 # --- STEP 1: Extract LOGIK ---
 class ExtractInput(BaseComponentResult):

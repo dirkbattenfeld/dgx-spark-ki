@@ -25,7 +25,7 @@ services:
       - ../../projects:/spark/projects
     environment:
       PYTHONUNBUFFERED: 1
-      PYTHONPATH: /app:/spark/libs:/spark/configs:/spark/applications
+      PYTHONPATH: /app:/spark:/spark/libs:/spark/configs:/spark/applications
 
 
 

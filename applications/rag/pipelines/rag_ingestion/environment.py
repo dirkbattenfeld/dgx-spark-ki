@@ -2,9 +2,9 @@
 
 import logging
 from typing import List, Optional
-from libs.storage.client import StorageClient
-from libs.pipeline.basemodels import BasePipelineEnv
-from applications.rag.pipelines.rag_ingestion.config import IngestionEnvConfig
+from storage.client import StorageClient
+from pipeline.basemodels import BasePipelineEnv
+from rag.pipelines.rag_ingestion.config import IngestionEnvConfig
 
 logger = logging.getLogger(__name__)
 class PdfIngestionEnv(BasePipelineEnv):

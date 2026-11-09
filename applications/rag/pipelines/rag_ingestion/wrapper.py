@@ -8,10 +8,11 @@
 import logging
 from typing import Any, Literal, Optional, Type, Union
 
-from applications.rag.pipelines.rag_ingestion.config import RagIngestionConfig
-from applications.rag.pipelines.rag_ingestion.pipeline import RagIngestionPipeline
-from libs.pipeline.runner import BasePipelineRunner
-from libs.pipeline.wrapper import BasePipelineWrapper
+from rag.pipelines.rag_ingestion.config import RagIngestionConfig
+from rag.pipelines.rag_ingestion.pipeline import RagIngestionPipeline
+
+from pipeline.runner import BasePipelineRunner
+from pipeline.wrapper import BasePipelineWrapper
 
 logger = logging.getLogger(__name__)
 

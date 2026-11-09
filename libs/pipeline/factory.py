@@ -3,8 +3,8 @@
 from typing import Literal
 from pydantic import BaseModel
 
-from libs.pipeline.base import BasePipeline
-from libs.pipeline.runner import (
+from pipeline.base import BasePipeline
+from pipeline.runner import (
     BasePipelineRunner, 
     SinglePipelineRunner, 
     StreamingPipelineRunner

@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any, ClassVar, Dict, Optional, Set
 from pydantic import BaseModel
-from libs.ki_dgxsdk.ki_sdk import DGX_Client
+from ki_dgxsdk.ki_sdk import DGX_Client
 
 
 class BasePipelineEnv:

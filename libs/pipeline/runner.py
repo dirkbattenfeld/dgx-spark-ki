@@ -7,8 +7,8 @@ from contextlib import nullcontext
 from typing import Any, Dict, List, Optional, Type, Union
 from pydantic import BaseModel
 
-from libs.pipeline.basemodels import BasePipelineEnv
-from libs.pipeline.step import PipelineStep
+from pipeline.basemodels import BasePipelineEnv
+from pipeline.step import PipelineStep
 
 logger = logging.getLogger(__name__)
 

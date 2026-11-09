@@ -8,8 +8,8 @@ from qdrant_client.models import (
     PointStruct, Filter, FieldCondition, MatchValue, Distance, VectorParams
 )
 
-from applications.rag.pipelines.rag_ingestion.steps.configs import StoreConfig
-from applications.rag.pipelines.rag_ingestion.steps.models import EmbedOutput, IngestionResult
+from rag.pipelines.rag_ingestion.steps.configs import StoreConfig
+from rag.pipelines.rag_ingestion.steps.models import EmbedOutput, IngestionResult
 
 logger = logging.getLogger(__name__)
 

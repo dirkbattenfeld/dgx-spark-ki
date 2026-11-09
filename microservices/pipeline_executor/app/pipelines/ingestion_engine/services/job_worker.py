@@ -1,6 +1,8 @@
 # pipeline_executor/app/pipelines/ingestion_engine/services/job_worker.py
 
+import asyncio
 import logging
+from typing import Any, Callable, Dict
 
 from pipelines.ingestion_engine.core.decision_tables import (
     WORKER_STAGE_1_RULES,
@@ -17,8 +19,87 @@ from pipelines.ingestion_engine.services.effect_handlers import (
 
 logger = logging.getLogger(__name__)
 
-
 class JobWorkerService:
+    def __init__(self, uow: AsyncUnitOfWork, max_concurrency: int = 2):
+        self.uow = uow
+        self.max_concurrency = max_concurrency
+
+    async def run_worker_loop(self) -> int:
+        logger.info("⚙️ Starte Job Worker Service mit %d parallelen Lanes...", self.max_concurrency)
+            
+        # --- WORKER-RESTART HOUSEKEEPING (Nur Zombie-Handling) ---
+        async with self.uow as cleanup_uow:
+            stats = await cleanup_uow.repo.worker_resume_housekeeping()
+            logger.info(
+                "🧹 Worker Housekeeping: %d Zombie-Jobs zu Pending zurückgesetzt | %d ins Dead-Letter verschoben.",
+                stats["zombies_reset_to_pending"], stats["zombies_moved_to_dead_letter"]
+            )
+        
+        # Spawne n parallele Worker-Coroutines, die sich Jobs aus der Queue holen
+        worker_tasks = [
+            self._worker_lane_loop(worker_id=i+1) 
+            for i in range(self.max_concurrency)
+        ]
+        
+        # Warte, bis alle Worker-Lanes ihre Schleifen (Queue leer) beendet haben
+        results = await asyncio.gather(*worker_tasks)
+        total_processed = sum(results)
+
+        logger.info("✨ Job Worker Pool beendet. Gesamte verarbeitete Jobs: %d", total_processed)
+        return total_processed
+
+    async def _worker_lane_loop(self, worker_id: int) -> int:
+        """Einzelne Worker-Lane, die so lange Jobs zieht, bis die Queue leer ist."""
+        processed = 0
+        logger.debug("👷 [Worker Lane %d] Gestartet und bereit für Jobs.", worker_id)
+
+        while True:
+            # --- TRANSAKTION A: Job holen & sperren (SKIP LOCKED garantiert Kollisionsfreiheit) ---
+            async with self.uow as uow:
+                job = await uow.repo.fetch_next_pending_job_with_skip_locked()
+                if not job:
+                    # Keine Jobs mehr in der Queue - diese Lane beendet sich
+                    break
+                job_id = job.job_id
+
+            logger.info("👷 [Worker Lane %d] Hat Job übernommen: %s [Op: %s]", worker_id, job_id, job.operation)
+            ctx = JobContext(job=job)
+            
+            try:
+                # --- STAGE 1: Payload ausführen ---
+                ctx = DecisionTableRunner.evaluate(ctx, WORKER_STAGE_1_RULES)
+                await EffectExecutionRunner.execute_command(ctx, WORKER_EFFECT_REGISTRY)
+
+                # --- STAGE 2: Post-Execution Weiche (Fehler-Analyse ODER direkter Erfolg) ---
+                ctx = DecisionTableRunner.evaluate(ctx, WORKER_STAGE_2_RULES)
+                await EffectExecutionRunner.execute_command(ctx, WORKER_EFFECT_REGISTRY)
+
+                # --- STAGE 3: Nur im Fehlerfall: Retry vs. DeadLetter Entscheidung ---
+                ctx = DecisionTableRunner.evaluate(ctx, WORKER_STAGE_3_RULES)
+
+            except Exception as e:
+                logger.error("❌ [Worker Lane %d] Unwarteter Fehler bei Ausführung von Job %s: %s", worker_id, job_id, e, exc_info=True)
+                ctx.new_job_status = JobStatus.FAILED
+                ctx.error_message = str(e)
+                ctx.increment_retry = True
+
+            # --- TRANSAKTION B: Atomare Persistenz (Job-Status + Asset Ledger Sync) ---
+            async with self.uow as persist_uow:
+                await persist_uow.repo.apply_job_and_ledger_mutation(
+                    job_id=job_id,
+                    new_job_status=ctx.new_job_status,
+                    increment_retry=ctx.increment_retry,
+                    error_message=getattr(ctx, "error_message", None),
+                    error_severity=getattr(ctx, "error_severity", None),
+                    ledger_mutation=getattr(ctx, "ledger_mutation", None)
+                )
+ 
+            processed += 1
+
+        logger.info("🏁 [Worker Lane %d] Beendet. Verarbeitete Jobs in dieser Lane: %d", worker_id, processed)
+        return processed
+
+class JobWorkerService_alt:
     def __init__(self, uow: AsyncUnitOfWork):
         self.uow = uow
 

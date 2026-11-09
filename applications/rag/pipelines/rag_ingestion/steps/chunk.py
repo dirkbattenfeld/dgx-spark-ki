@@ -2,8 +2,8 @@
 import os
 import logging
 from typing import Any
-from applications.rag.pipelines.rag_ingestion.steps.configs import ChunkConfig
-from applications.rag.pipelines.rag_ingestion.steps.models import Chunk, ChunkedDocument, ParentChunk, RawDocument
+from rag.pipelines.rag_ingestion.steps.configs import ChunkConfig
+from rag.pipelines.rag_ingestion.steps.models import Chunk, ChunkedDocument, ParentChunk, RawDocument
 
 async def chunk_action(raw_doc: RawDocument, docling_client: Any, config: ChunkConfig) -> ChunkedDocument:
     logger=logging.getLogger(__name__)

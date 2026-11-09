@@ -1,25 +1,24 @@
 # applications/rag/pipelines/rag_ingestion/pipeline.py
 
 from typing import List, Type
+
+from pipeline.base import BasePipeline
+from pipeline.basemodels import BasePipelineEnv
+from pipeline.step import PipelineStep
 from pydantic import BaseModel
-
-from libs.pipeline.base import BasePipeline
-from libs.pipeline.step import PipelineStep
-from libs.pipeline.basemodels import BasePipelineEnv
-
-from applications.rag.pipelines.rag_ingestion.config import RagIngestionConfig
-from applications.rag.pipelines.rag_ingestion.environment import PdfIngestionEnv
-from applications.rag.pipelines.rag_ingestion.steps.models import (
+from rag.pipelines.rag_ingestion.config import RagIngestionConfig
+from rag.pipelines.rag_ingestion.environment import PdfIngestionEnv
+from rag.pipelines.rag_ingestion.steps.chunk import chunk_action
+from rag.pipelines.rag_ingestion.steps.contextualize import contextualize_action
+from rag.pipelines.rag_ingestion.steps.embed import embed_action
+from rag.pipelines.rag_ingestion.steps.extract import extract_action
+from rag.pipelines.rag_ingestion.steps.models import (
+    ChunkedDocument,
+    EmbedOutput,
     ExtractInput,
     RawDocument,
-    ChunkedDocument,
-    EmbedOutput
 )
-from applications.rag.pipelines.rag_ingestion.steps.chunk import chunk_action
-from applications.rag.pipelines.rag_ingestion.steps.contextualize import contextualize_action
-from applications.rag.pipelines.rag_ingestion.steps.embed import embed_action
-from applications.rag.pipelines.rag_ingestion.steps.extract import extract_action
-from applications.rag.pipelines.rag_ingestion.steps.store import store_action
+from rag.pipelines.rag_ingestion.steps.store import store_action
 
 
 class RagIngestionPipeline(BasePipeline):

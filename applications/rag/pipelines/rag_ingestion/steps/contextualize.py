@@ -4,8 +4,8 @@ import asyncio
 import os
 from typing import Any, Dict, List
 
-from applications.rag.pipelines.rag_ingestion.steps.configs import ContextualizeConfig
-from applications.rag.pipelines.rag_ingestion.steps.models import Chunk, ChunkedDocument
+from rag.pipelines.rag_ingestion.steps.configs import ContextualizeConfig
+from rag.pipelines.rag_ingestion.steps.models import Chunk, ChunkedDocument
 
 # --- HILFSFUNKTIONEN FÜR DEN VLLM CALL ---
 def _build_prompt(document_window: str, chunk: Dict[str, Any], config: ContextualizeConfig) -> str:

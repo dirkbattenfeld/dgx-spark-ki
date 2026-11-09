@@ -5,9 +5,9 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Set, Literal, Optional, Type
 from pydantic import BaseModel
 
-from libs.pipeline.base import BasePipeline
-from libs.pipeline.factory import PipelineRunnerFactory
-from libs.pipeline.runner import BasePipelineRunner
+from pipeline.base import BasePipeline
+from pipeline.factory import PipelineRunnerFactory
+from pipeline.runner import BasePipelineRunner
 
 logger = logging.getLogger(__name__)
 

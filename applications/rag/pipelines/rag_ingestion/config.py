@@ -1,17 +1,19 @@
 # libs/applications/rag/pipelines/rag_ingestion/config.py
 
 from typing import Optional
+
 from pydantic import BaseModel, Field
-from libs.observability import ChannelConfig, ObservabilityConfig 
 
 # Import der fachlichen Step-Configs
-from applications.rag.pipelines.rag_ingestion.steps.configs import (
+from rag.pipelines.rag_ingestion.steps.configs import (
     ChunkConfig,
     ContextualizeConfig,
     EmbedConfig,
     ExtractConfig,
-    StoreConfig
+    StoreConfig,
 )
+
+
 class IngestionEnvConfig(BaseModel):
     """Globale Infrastruktur- und Laufzeit-Einstellungen der Pipeline."""
     use_dispatcher: bool = True

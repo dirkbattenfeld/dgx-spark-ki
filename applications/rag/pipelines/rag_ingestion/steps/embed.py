@@ -2,8 +2,8 @@ import logging
 import os
 from typing import Any, List
 
-from applications.rag.pipelines.rag_ingestion.steps.configs import EmbedConfig
-from applications.rag.pipelines.rag_ingestion.steps.models import ChunkedDocument, EmbeddedChunk, EmbedOutput
+from rag.pipelines.rag_ingestion.steps.configs import EmbedConfig
+from rag.pipelines.rag_ingestion.steps.models import ChunkedDocument, EmbeddedChunk, EmbedOutput
 
 async def embed_action(
     chunked_doc: ChunkedDocument, 

@@ -8,7 +8,7 @@ from pathlib import Path
 from sqlalchemy import select
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
@@ -17,7 +17,7 @@ logger = logging.getLogger("IngestionTestMain")
 
 RUN_SCANNER = True
 RUN_RECONCILIATION = True 
-RUN_JOB_WORKER = False
+RUN_JOB_WORKER = True
 INSPECT_DATABASE = True
 
 from pipelines.ingestion_engine.core.config import settings
@@ -92,7 +92,7 @@ async def run_pipeline_test():
 
     if RUN_JOB_WORKER:
         logger.info("--- [WORKER] Job Worker Execution (Isolated Transactions) ---")
-        worker = JobWorkerService(uow=AsyncUnitOfWork(async_session_maker))
+        worker = JobWorkerService(uow=AsyncUnitOfWork(async_session_maker), max_concurrency=2)
         await worker.run_worker_loop()
         
     if INSPECT_DATABASE:

@@ -2,8 +2,8 @@
 import os
 import logging
 from typing import Any
-from applications.rag.pipelines.rag_ingestion.steps.configs import ExtractConfig
-from applications.rag.pipelines.rag_ingestion.steps.models import ExtractInput, RawDocument
+from rag.pipelines.rag_ingestion.steps.configs import ExtractConfig
+from rag.pipelines.rag_ingestion.steps.models import ExtractInput, RawDocument
 
 async def extract_action(input_data: ExtractInput, docling_client: Any, config: ExtractConfig) -> RawDocument:
     logger=logging.getLogger(__name__)

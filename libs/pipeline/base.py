@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 from typing import List, Type, Literal
 from pydantic import BaseModel
 
-from libs.pipeline.basemodels import BasePipelineEnv
-from libs.pipeline.step import PipelineStep
+from pipeline.basemodels import BasePipelineEnv
+from pipeline.step import PipelineStep
 
 
 class BasePipeline(ABC):

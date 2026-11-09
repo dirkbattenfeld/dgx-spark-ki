@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 from typing import Any, Callable, Dict
 
+from rag.pipelines.rag_ingestion.wrapper import RagIngestionSingleWrapper
 from storage.client import StorageClient
 
 from pipelines.ingestion_engine.core.models import (
@@ -133,15 +134,16 @@ async def create_job_payload(context: JobContext, *args, **kwargs):
     logger.info("🚀 [Ingestion Pipeline]: Starte Voll-Indexierung für Job ID: %s", job_id)
     try:
         cloud_path = context.job.cloud_path
-        
-        
+        payload = {"source_path": cloud_path}
+        overrides = {"StoreQdrant": {"collection_name": "test4"}}
+        result = await RagIngestionSingleWrapper().execute(incoming_payload=payload, overrides=overrides)
+        status = result.get("status", {})
+        if status.get("status") == "failed":
+            context.execution_error = status 
+        logger.info("[Ingestion Pipeline]: result = %s", str(status))
     except Exception as e:
         logger.error("[Ingestion Pipeline]: Fehler während der Ausführung von Job ID: %s: %s", job_id, e)
-        context.execution_error = (
-            RuntimeError("Simulierter Fehler des Mock")
-            if random.random() < 0
-            else None
-        )
+        context.execution_error = e
 
 
 async def effect_execute_job_payload(context: JobContext, *args, **kwargs):
@@ -154,7 +156,7 @@ async def effect_execute_job_payload(context: JobContext, *args, **kwargs):
         if operation == OperationType.DELETE:
             await mock_delete_job_payload(context, *args, **kwargs)
         elif operation == OperationType.CREATE:
-            await mock_create_job_payload(context, *args, **kwargs)
+            await create_job_payload(context, *args, **kwargs)
         elif operation == OperationType.UPDATE:
             # 1. Schritt: Alte Vektoren / Orphan Chunks restlos bereinigen
             await mock_delete_job_payload(context, *args, **kwargs)
