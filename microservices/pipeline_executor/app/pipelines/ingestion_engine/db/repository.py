@@ -9,10 +9,10 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pipelines.ingestion_engine.core.models import (
-    AssetStatus, 
-    JobStatus, 
-    LedgerFieldDelta,
+    AssetStatus,
     JobFieldDelta,
+    JobStatus,
+    LedgerFieldDelta,
 )
 from pipelines.ingestion_engine.db.models import AssetRecordModel, IngestionJobModel
 

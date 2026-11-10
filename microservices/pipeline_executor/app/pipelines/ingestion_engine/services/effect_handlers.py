@@ -163,7 +163,7 @@ async def effect_execute_job_payload(context: JobContext, *args, **kwargs):
             
             # 2. Schritt: Nur wenn das Löschen erfolgreich war, die neue Version indexieren
             if context.execution_error is None:
-                await mock_create_job_payload(context, *args, **kwargs)
+                await create_job_payload(context, *args, **kwargs)
         else:
             raise ValueError(f"Unbekannter Operationstyp im Job: {operation}")
             

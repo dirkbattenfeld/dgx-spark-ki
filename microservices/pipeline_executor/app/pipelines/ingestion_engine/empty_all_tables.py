@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-from pathlib import Path
 
 from sqlalchemy import text
 
