@@ -27,7 +27,7 @@ postgres_port: 5432
 hf_home_pc: "/models/huggingface_cache"
 
 # Docling Service Configuration
-docling_workers: 4
+docling_workers: 6
 
 # Ingestion Engine
 ingestion_worker_concurrency: 4

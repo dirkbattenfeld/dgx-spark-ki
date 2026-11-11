@@ -26,6 +26,10 @@ services:
     environment:
       PYTHONUNBUFFERED: 1
       PYTHONPATH: /app:/spark:/spark/libs:/spark/configs:/spark/applications
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
 
 
 

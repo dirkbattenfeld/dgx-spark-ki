@@ -15,7 +15,7 @@ services:
     port: 8889
     queue_id: "standard"
     batching: true
-    max_batch_size: 10
+    max_batch_size: "{{ docling_workers }}"
     endpoints:
       extract:
         path: "/extract"

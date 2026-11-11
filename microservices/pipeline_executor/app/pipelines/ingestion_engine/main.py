@@ -92,7 +92,7 @@ async def run_pipeline_test():
 
     if RUN_JOB_WORKER:
         logger.info("--- [WORKER] Job Worker Execution (Isolated Transactions) ---")
-        worker = JobWorkerService(async_session_maker=async_session_maker, max_concurrency=2)
+        worker = JobWorkerService(async_session_maker=async_session_maker, max_concurrency=12)
         await worker.run_worker_loop()
         
     if INSPECT_DATABASE:
