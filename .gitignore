@@ -43,6 +43,7 @@ cache/
 
 # Logs
 *.log
+*.log.*
 **/logs/
 **/logs/**
 **/log/

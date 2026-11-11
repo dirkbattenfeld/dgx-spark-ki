@@ -1,34 +1,39 @@
-import os
 import io
-import sys
 import json
 import logging
+import os
+import sys
 import uuid
-from pathlib import Path
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Optional
 
 import torch
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from docling.chunking import HybridChunker
+
+# SOTA Tabellen- & Pipeline-Optionen
+from docling.datamodel.base_models import (
+    DocumentStream,
+    InputFormat,  # Definiert die erlaubten Dateitypen
+)
+from docling.datamodel.pipeline_options import (  # Steuert die KI-Modell-Backends
+    PdfPipelineOptions,
+    TableFormerMode,
+)
 
 # Docling Core & Base Imports
 from docling.document_converter import (
-    DocumentConverter, 
-    PdfFormatOption, 
-    WordFormatOption, 
-    PowerpointFormatOption, 
-    ExcelFormatOption
+    DocumentConverter,
+    ExcelFormatOption,
+    PdfFormatOption,
+    PowerpointFormatOption,
+    WordFormatOption,
 )
-from docling_core.types.doc import DoclingDocument
-from docling.chunking import HybridChunker
-from transformers import AutoTokenizer
-
-# SOTA Tabellen- & Pipeline-Optionen
-from docling.datamodel.base_models import InputFormat  # Definiert die erlaubten Dateitypen
-from docling.datamodel.base_models import DocumentStream
-from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode  # Steuert die KI-Modell-Backends
 from docling.models.stages.ocr.tesseract_ocr_model import TesseractOcrOptions
+from docling_core.types.doc import DoclingDocument
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
+from transformers import AutoTokenizer
 
 # Logging Setup
 logging.basicConfig(level=logging.INFO)
@@ -65,7 +70,8 @@ class GlobalState:
     converter: Optional[DocumentConverter] = None
     default_chunker: Optional[HybridChunker] = None
     active_tokenizer_name: Optional[str] = None
-
+    device: str = "cpu"
+    
 state = GlobalState()
 
 @asynccontextmanager
@@ -78,8 +84,8 @@ async def lifespan(app: FastAPI):
         state.storage = StorageClient()
 
         # Device dynamisch wählen
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        logger.info(f"Starte Initialisierung der Modelle auf Device: {device.upper()}")
+        state.device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info(f"Starte Initialisierung der Modelle auf Device: {state.device.upper()}")
         
         # Pipeline-Optionen für pdf konfigurieren
         pipeline_options = PdfPipelineOptions()
@@ -100,7 +106,7 @@ async def lifespan(app: FastAPI):
             format_options={
                 InputFormat.PDF: PdfFormatOption(
                     pipeline_options=pipeline_options,
-                    backend_constraints={"device": device}
+                    backend_constraints={"device": state.device}
                 ),
                 # Standard-Optionen für Office-Formate (laufen standardmäßig CPU-basiert für Text-Extraktion)
                 InputFormat.DOCX: WordFormatOption(),
@@ -119,7 +125,7 @@ async def lifespan(app: FastAPI):
         )
         state.active_tokenizer_name = default_tokenizer
 
-        logger.info(f"Tableformer (Accurate) erfolgreich geladen auf {device.upper()}. Standard-Tokenizer: {default_tokenizer}")
+        logger.info(f"Tableformer (Accurate) erfolgreich geladen auf {state.device.upper()}. Standard-Tokenizer: {default_tokenizer}")
     except Exception as e:
         logger.critical(f"FATAL: Fehler bei der Initialisierung des Lifespans: {e}", exc_info=True)
         sys.exit(1)
@@ -168,7 +174,7 @@ async def extract_document(request: ExtractRequest):
         meta_processed = {
             "table_mode": "ACCURATE" if request.detailed_tables else "FAST",
             "ocr_active": request.ocr_enabled,
-            "cuda_device": torch.cuda.get_device_name(0) if device=="cuda" else "CPU",
+            "cuda_device": torch.cuda.get_device_name(0) if state.device=="cuda" else "CPU",
             "input_format": str(input_format)
         }
 
@@ -189,7 +195,7 @@ async def extract_document(request: ExtractRequest):
                 
             state.converter.format_to_options[InputFormat.PDF] = PdfFormatOption(
                 pipeline_options=req_options,
-                backend_constraints={"device": device}
+                backend_constraints={"device": state.device}
             )
         else:
             logger.info(f"Nutze Standard-Pipeline für Office-Format: {input_format}")
