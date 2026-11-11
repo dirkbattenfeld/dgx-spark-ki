@@ -11,7 +11,7 @@ gx10_ip: "{{ hostvars['gx10']['ansible_host'] }}"
 
 # Mapping der Service-IPs auf die Basis-IP-Variablen (100.117.200.75 -> gx10_ip, 100.67.8.64 -> pc_ip)
 vllm_ip: "{{ gx10_ip }}"
-docling_ip: "{{ gx10_ip }}"
+docling_ip: "{{ pc_ip }}"
 flux_ip: "{{ gx10_ip }}"
 infinity_ip: "{{ gx10_ip }}"
 

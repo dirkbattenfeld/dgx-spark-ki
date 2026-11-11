@@ -20,6 +20,13 @@ POSTGRES_PORT={{ postgres_port | default('5434') }}
 POSTGRES_SERVER={{ postgres_server | default('100.67.8.64') }}
 POSTGRES_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
 
+# Huggingface
+HF_TOKEN={{ hf_token }}
+HF_HOME_PC={{ hf_home_pc }}
+
+# Docling Service Configuration
+DOCLING_WORKERS={{ docling_workers | default(2) }}
+
 # Ingestion Engine Tuning
 INGESTION_WORKER_CONCURRENCY={{ ingestion_worker_concurrency | default('2') }}
 INGESTION_BATCH_SIZE={{ ingestion_batch_size | default('100') }}

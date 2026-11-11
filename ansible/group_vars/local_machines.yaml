@@ -23,6 +23,12 @@ postgres_db: "ingestion_db"
 postgres_server: "{{ pc_ip }}"
 postgres_port: 5432
 
+# Huggingface
+hf_home_pc: "/models/huggingface_cache"
+
+# Docling Service Configuration
+docling_workers: 4
+
 # Ingestion Engine
 ingestion_worker_concurrency: 4
 ingestion_batch_size: 100

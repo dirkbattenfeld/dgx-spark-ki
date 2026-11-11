@@ -18,14 +18,14 @@
         dest: "{{ base_dir }}/.env"
         mode: '0644'
 
-    - name: 2. Manage Docling Service (Only if not skipped)
-      community.docker.docker_compose_v2:
-        project_src: "{{ ansible_env.HOME }}/docker/dgx-spark-ki/ki-services/docling"
-        env_files:
-          - "{{ base_dir }}/.env"
-        state: "{{ target_state | default('present') }}"
-      when: not (docling_skip | default(false))
-      tags: [docling]
+#    - name: 2. Manage Docling Service (Only if not skipped)
+#      community.docker.docker_compose_v2:
+#        project_src: "{{ ansible_env.HOME }}/docker/dgx-spark-ki/ki-services/docling"
+#        env_files:
+#          - "{{ base_dir }}/.env"
+#        state: "{{ target_state | default('present') }}"
+#      when: not (docling_skip | default(false))
+#      tags: [docling]
 
     - name: 3. Manage Infinity Service
       community.docker.docker_compose_v2:

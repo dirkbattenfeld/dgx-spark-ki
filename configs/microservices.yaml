@@ -11,7 +11,7 @@ services:
         path: "/v1/chat/completions"
 
   docling:
-    host: "100.117.200.75"
+    host: "100.67.8.64"
     port: 8889
     queue_id: "standard"
     batching: true

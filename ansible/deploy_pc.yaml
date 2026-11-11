@@ -84,6 +84,15 @@
         state: "{{ deployment_action }}"
       tags: [postgresql]
 
+    - name: Manage Docling Service (Only if not skipped)
+      community.docker.docker_compose_v2:
+        project_src: "{{ playbook_dir }}/../microservices/docling"
+        env_files:
+          - "{{ playbook_dir }}/../.env"
+        state: "{{ deployment_action }}"
+#      when: not (docling_skip | default(false))
+      tags: [docling_cpu]
+
     - name: Manage Qdrant Vector Database
       community.docker.docker_compose_v2:
         project_src: "{{ playbook_dir }}/../microservices/qdrant"
