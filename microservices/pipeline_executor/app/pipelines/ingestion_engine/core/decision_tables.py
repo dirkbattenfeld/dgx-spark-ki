@@ -218,7 +218,7 @@ STAGE_3_RULES = [
             "job_mutation": lambda ctx: JobFieldDelta(
                 asset_path=str(ctx.path),
                 original_path=Path(ctx.path),
-                cloud_path="",
+                cloud_path=str(ctx.s3_path),
                 operation=OperationType.DELETE,
                 delta_operation="insert",
                 status=JobStatus.PENDING

@@ -1,9 +1,7 @@
 # pipeline_executor/app/pipelines/ingestion_engine/services/reconciler.py
 
 import logging
-from typing import Dict, List, Set
-
-from storage.client import StorageClient
+from typing import List
 
 from pipelines.ingestion_engine.core.config import settings
 from pipelines.ingestion_engine.core.decision_tables import (
@@ -12,6 +10,7 @@ from pipelines.ingestion_engine.core.decision_tables import (
     STAGE_3_RULES,
     DecisionTableRunner,
 )
+from pipelines.ingestion_engine.core.infrastructure import InfrastructureContext
 from pipelines.ingestion_engine.core.models import (
     AssetContext,
     FileSnapshot,
@@ -27,9 +26,9 @@ logger = logging.getLogger(__name__)
 
 
 class ReconciliationService:
-    def __init__(self, uow: AsyncUnitOfWork, storage_client: StorageClient):
+    def __init__(self, uow: AsyncUnitOfWork, shared_env: "InfrastructureContext",):
         self.uow = uow
-        self.storage = storage_client
+        self.shared_env = shared_env
         self.batch_size = settings.ingestion_batch_size
 
     async def reconcile(self, snapshots: List[FileSnapshot]) -> int:
@@ -73,12 +72,12 @@ class ReconciliationService:
                     # Stage 1
                     ctx = DecisionTableRunner.evaluate(ctx, STAGE_1_RULES)
                     if ctx.active_command != PipelineCommand.NONE:
-                        await EffectExecutionRunner.execute_command(ctx, PIPELINE_EFFECT_REGISTRY, chunk_uow, self.storage)
+                        await EffectExecutionRunner.execute_command(ctx, PIPELINE_EFFECT_REGISTRY, shared_env=self.shared_env)
 
                     # Stage 2
                     ctx = DecisionTableRunner.evaluate(ctx, STAGE_2_RULES)
                     if ctx.active_command != PipelineCommand.NONE:
-                        await EffectExecutionRunner.execute_command(ctx, PIPELINE_EFFECT_REGISTRY, chunk_uow, self.storage)
+                        await EffectExecutionRunner.execute_command(ctx, PIPELINE_EFFECT_REGISTRY, shared_env=self.shared_env)
                     
                     # Stage 3
                     ctx = DecisionTableRunner.evaluate(ctx, STAGE_3_RULES)

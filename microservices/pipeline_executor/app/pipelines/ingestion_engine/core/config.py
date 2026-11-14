@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     # Ingestion Engine Tuning
     ingestion_worker_concurrency: int = 4
     ingestion_batch_size: int = 5   # 500 für Produktion
+    
+    # Dispatcher
+    USE_DISPATCHER: bool = True
+    MICROSERVICE_CONFIG_PATH: str = "/spark/configs/microservices.yaml"
 
     # Pydantic v2 Konfiguration
     model_config = SettingsConfigDict(

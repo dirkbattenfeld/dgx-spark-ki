@@ -21,21 +21,21 @@ RUN_JOB_WORKER = True
 INSPECT_DATABASE = True
 
 from pipelines.ingestion_engine.core.config import settings
+from pipelines.ingestion_engine.core.infrastructure import InfrastructureContext
 from pipelines.ingestion_engine.core.models import PathRuleConfig, PipelineConfig
 from pipelines.ingestion_engine.db.models import AssetRecordModel, IngestionJobModel
-from pipelines.ingestion_engine.db.session import async_session_maker
 from pipelines.ingestion_engine.db.uow import AsyncUnitOfWork
 from pipelines.ingestion_engine.services.job_worker import JobWorkerService
 from pipelines.ingestion_engine.services.reconciler import ReconciliationService
 from pipelines.ingestion_engine.services.scanner import StorageSnapshotScanner
 
 
-async def inspect_database_state(stage_label: str):
+async def inspect_database_state(session_maker, stage_label: str):
     """Kapselt die Inspektion beider Tabellen für transparente Zwischen- und Endstände."""
     logger.info("")  # Leerzeile
     logger.info("-" * 50)  
     logger.info("--- [INSPECT] PostgreSQL State Inspection (%s) ---", stage_label)
-    async with async_session_maker() as session:
+    async with session_maker() as session:
         res_assets = await session.execute(select(AssetRecordModel))
         assets = res_assets.scalars().all()
         logger.info("📂 ASSET REGISTRY (%d Einträge):", len(assets))
@@ -51,7 +51,7 @@ async def inspect_database_state(stage_label: str):
     logger.info("")  # Leerzeile
 
 
-async def run_pipeline_test():
+async def run_ingestion_engine():
     logger.info("🚀 Starte End-to-End Test für generative Ingestion-Pipeline...")
 
     test_target_dir = Path("/workspace/projects/rag02/data")
@@ -62,41 +62,39 @@ async def run_pipeline_test():
         watched_targets=[PathRuleConfig(path=test_target_dir)]
     )
 
-    try:
-        from storage.client import StorageClient
-        storage_client = StorageClient()
-    except Exception as e:
-        logger.warning(f"⚠️ StorageClient konnte nicht geladen werden ({e}).")
-        raise
-
+    infra = await InfrastructureContext.create(settings)
+    
     snapshots = []
 
     if INSPECT_DATABASE:
-        await inspect_database_state("DB: Start des Skripts")
+        await inspect_database_state(infra.async_session_maker, "DB: Start des Skripts")
     
     if RUN_SCANNER:
         logger.info("--- [SCAN] Snapshot-Scan ---")
-        scanner = StorageSnapshotScanner(config=pipeline_config, storage_client=storage_client)
+        scanner = StorageSnapshotScanner(config=pipeline_config, storage_client=infra.storage_client)
         snapshots = scanner.scan()
         logger.info("📊 Snapshots gefunden: %d", len(snapshots))
 
     if RUN_RECONCILIATION:
         logger.info ("")
         logger.info("--- [RECONCILE] Chunked Reconciler & 3-Stage Pipeline ---")
-        uow = AsyncUnitOfWork(async_session_maker)
-        reconciler = ReconciliationService(uow=uow, storage_client=storage_client)
+        uow = AsyncUnitOfWork(infra.async_session_maker)
+        reconciler = ReconciliationService(uow=uow, shared_env=infra)
         await reconciler.reconcile(snapshots)
 
     if INSPECT_DATABASE:
-        await inspect_database_state("DB: Post-Reconciliation (Pending Jobs erstellt)")
+        await inspect_database_state(infra.async_session_maker, "DB: Post-Reconciliation (Pending Jobs erstellt)")
 
     if RUN_JOB_WORKER:
         logger.info("--- [WORKER] Job Worker Execution (Isolated Transactions) ---")
-        worker = JobWorkerService(async_session_maker=async_session_maker, max_concurrency=12)
+        worker = JobWorkerService(
+            max_concurrency=1,
+            shared_env=infra)
+        
         await worker.run_worker_loop()
         
     if INSPECT_DATABASE:
-        await inspect_database_state("DB: Post-Worker Execution (Jobs Success & Assets Synced)")
+        await inspect_database_state(infra.async_session_maker, "DB: Post-Worker Execution (Jobs Success & Assets Synced)")
 
 if __name__ == "__main__":
-    asyncio.run(run_pipeline_test())
+    asyncio.run(run_ingestion_engine())
